@@ -8,7 +8,7 @@ int main(int argc, const char *argv[])
 	printf("bsp-converter by lewa_j v0.6 - 2022\n");
 	if (argc < 2 || !strcmp(argv[1], "-h"))
 	{
-		printf("Usage: bsp-converter map.bsp [-lm <lightmap atlas size>] [-skip_sky]\n");
+		printf("Usage: bsp-converter map.bsp [-lm <lightmap atlas size>] [-skip_sky] [-lstyles <light style index>|all]\n");
 		return -1;
 	}
 
@@ -39,6 +39,21 @@ int main(int argc, const char *argv[])
 			else
 			{
 				printf("Warning: '-lm' parameter requires a number - lightmap atlas resolution\n");
+			}
+		}
+		if (!strcmp(argv[i], "-lstyle"))
+		{
+			if (argc > i + 1)
+			{
+				i++;
+				if (!strcmp(argv[i], "all"))
+					config.lstylesAll = true;
+				else
+					config.lstyle = atoi(argv[i]);
+			}
+			else
+			{
+				printf("Warning: '-lstyle' parameter requires a number - light style index, or a word 'all'\n");
 			}
 		}
 		else if (!strcmp(argv[i], "-skip_sky"))

@@ -18,6 +18,7 @@ A tool to convert bsp maps (Half-Life and other GoldSrc games) into gltf scenes.
 
 * `-lm <number>` - set a lightmap atlas size
 * `-skip_sky` - exclude polygons with 'sky' texture from export 
+* `-lstyle <number>|all` - export lightmap with a specified lightstyle index or all lightyles in one
 
 ## Dependencies (already included)
 

@@ -120,6 +120,8 @@ struct LoadConfig
 {
 	bool skipSky = false;
 	int lightmapSize = 1024;
+	int lstyle = -1;
+	bool lstylesAll = false;
 };
 
 class Map

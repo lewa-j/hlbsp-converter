@@ -192,7 +192,7 @@ bool Map::load(const char *path, const char *name, LoadConfig *config)
 		const dface_t &f = faces[i];
 		for (int j = 0; j < LM_STYLES; j++)
 		{
-			if (f.styles[j] != 0 && f.styles[j] != 255)
+			if (f.styles[j] != 0 && f.styles[j] != 255 && (config->lstylesAll || f.styles[j] == config->lstyle))
 			{
 				activeStyles++;
 				break;
@@ -218,6 +218,8 @@ bool Map::load(const char *path, const char *name, LoadConfig *config)
 			for (int s = 1; s < LM_STYLES && f.styles[s] != 255; s++)
 			{
 				lmOffset += fl.size[0] * fl.size[1] * 3;
+				if (!config->lstylesAll && f.styles[s] != config->lstyle)
+					continue;
 				for (int l = 0; l < flmap.size(); l++)
 				{
 					int val = flmap[l] + lightmapPixels[f.lightofs + lmOffset + l];
@@ -234,7 +236,10 @@ bool Map::load(const char *path, const char *name, LoadConfig *config)
 				data += fl.size[0] * 3;
 			}
 		}
-		lmap2.save((std::string(name) + "_styles_lightmap.png").c_str());
+		if (config->lstylesAll)
+			lmap2.save((std::string(name) + "_styles_lightmap.png").c_str());
+		else
+			lmap2.save((std::string(name) + "_style" + std::to_string(config->lstyle) + "_lightmap.png").c_str());
 	}
 
 	return true;
