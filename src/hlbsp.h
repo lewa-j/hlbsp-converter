@@ -28,6 +28,20 @@ enum Lumps
 	LUMP_SURFEDGES		= 13,
 	LUMP_MODELS			= 14,
 	HEADER_LUMPS		= 15,
+	// v31
+	LUMP_CLIPNODES2		= 0,
+	LUMP_CLIPNODES3		= 1,
+	HEADER_LUMPS_31		= 2,
+	// extra
+	LUMP_LIGHTVECS		= 0,	// deluxemap data
+	LUMP_FACEINFO		= 1,	// landscape and lightmap resolution info
+	LUMP_CUBEMAPS		= 2,	// cubemap description
+	LUMP_VERTNORMALS	= 3,	// phong shaded vertex normals
+	LUMP_LEAF_LIGHTING	= 4,	// contain compressed light cubes per empty leafs
+	LUMP_WORLDLIGHTS	= 5,	// list of all the virtual and real lights (used to relight models in-game)
+	LUMP_COLLISION		= 6,	// physics engine collision hull dump
+	LUMP_AINODEGRAPH	= 7,	// node graph that stored into the bsp
+	EXTRA_LUMPS			= 12,
 };
 
 enum class SurfaceFlags
@@ -46,7 +60,10 @@ enum class SurfaceFlags
 enum
 {
 	HLBSP_VERSION	= 30,	// half-life regular version
-	LM_SAMPLE_SIZE	= 16,
+	XTBSP_VERSION	= 31,	// extended lightmaps and expanded clipnodes limit
+
+	IDEXTRAHEADER	= (('H'<<24)+('S'<<16)+('A'<<8)+'X'), // little-endian "XASH"
+	EXTRA_VERSION	= 4,
 
 	MAX_MAP_HULLS	= 4,
 	LM_STYLES		= 4
@@ -62,6 +79,18 @@ struct dheader_t
 {
 	int32_t	version;
 	dlump_t	lumps[HEADER_LUMPS];
+};
+
+struct dheader31_t
+{
+	dlump_t	lumps[HEADER_LUMPS_31];
+};
+
+struct dextrahdr_t
+{
+	int	id;	// must be little endian XASH
+	int	version;
+	dlump_t	lumps[EXTRA_LUMPS];
 };
 
 struct vec3_t
@@ -105,7 +134,16 @@ struct dtexinfo_t
 {
 	float	vecs[2][4];		// texmatrix [s/t][xyz offset]
 	int32_t	miptex;
-	int32_t	flags;
+	int16_t	flags;
+	int16_t	faceInfo;		// xash extension
+};
+
+struct dfaceinfo_t
+{
+	char		landname[16];	// name of description in mapname_land.txt
+	uint16_t	textureStep;	// default is 16, pixels\luxels ratio
+	uint16_t	maxExtent;		// default is 16, subdivision step ((texture_step * max_extent) - texture_step)
+	int16_t		groupid;		// to determine equal landscapes from various groups, -1 - no group
 };
 
 struct mip_t
@@ -160,7 +198,9 @@ public:
 	std::vector<dtexinfo_t> texinfos;
 	std::vector<Texture> textures;
 	std::vector<uint8_t> lightmapPixels;
+	std::vector<uint8_t> lightmapVecs;
 
+	int lmSampleSize = 16;
 private:
 	void loadTextures(FILE *f, dlump_t lump);
 };

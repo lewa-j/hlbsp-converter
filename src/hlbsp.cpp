@@ -22,30 +22,56 @@ bool Map::load(const char *path, const char *name, LoadConfig *config)
 	printf("Reading %s\n", path);
 
 	dheader_t header;
+	dheader31_t header31;
+	dextrahdr_t headerExtra;
 	fread(&header, sizeof(header), 1, f);
 
-	if (header.version != HLBSP_VERSION)
+	switch (header.version)
 	{
+	case HLBSP_VERSION:
+		lmSampleSize = 16;
+		break;
+	case XTBSP_VERSION:
+		lmSampleSize = 8;
+		break;
+	default:
 		fprintf(stderr, "Error: unknown bsp version %d\n", header.version);
 		fclose(f);
 		return false;
 	}
 
+	if (header.version == XTBSP_VERSION)
+		fread(&header31, sizeof(header31), 1, f);
+
+	fread(&headerExtra, sizeof(headerExtra), 1, f);
+
+	if (headerExtra.id != IDEXTRAHEADER || headerExtra.version != EXTRA_VERSION)
+		headerExtra.id = 0; // no extra header
+
 	std::vector<vec3_t> bspVertices;
 	std::vector<dmodel_t> bspModels;
+	std::vector<dfaceinfo_t> faceInfos;
 
-#define READ_LUMP(to, id) \
-	to.resize(header.lumps[id].filelen / sizeof(to[0])); \
-	fseek(f, header.lumps[id].fileofs, SEEK_SET); \
-	fread(&to[0], header.lumps[id].filelen, 1, f);
+#define READ_LUMP(to, lump) \
+	to.resize(lump.filelen / sizeof(to[0])); \
+	if(lump.filelen) \
+	{ \
+		fseek(f, lump.fileofs, SEEK_SET); \
+		fread(&to[0], lump.filelen, 1, f); \
+	}
 
-	READ_LUMP(bspVertices, LUMP_VERTEXES);
-	READ_LUMP(bspModels, LUMP_MODELS);
-	READ_LUMP(faces, LUMP_FACES);
-	READ_LUMP(surfedges, LUMP_SURFEDGES);
-	READ_LUMP(edges, LUMP_EDGES);
-	READ_LUMP(texinfos, LUMP_TEXINFO);
-	READ_LUMP(lightmapPixels, LUMP_LIGHTING);
+	READ_LUMP(bspVertices, header.lumps[LUMP_VERTEXES]);
+	READ_LUMP(bspModels, header.lumps[LUMP_MODELS]);
+	READ_LUMP(faces, header.lumps[LUMP_FACES]);
+	READ_LUMP(surfedges, header.lumps[LUMP_SURFEDGES]);
+	READ_LUMP(edges, header.lumps[LUMP_EDGES]);
+	READ_LUMP(texinfos, header.lumps[LUMP_TEXINFO]);
+	READ_LUMP(lightmapPixels, header.lumps[LUMP_LIGHTING]);
+	if (headerExtra.id)
+	{
+		READ_LUMP(lightmapVecs, headerExtra.lumps[LUMP_LIGHTVECS]);
+		READ_LUMP(faceInfos, headerExtra.lumps[LUMP_FACEINFO]);
+	}
 #undef READ_LUMP
 
 	printf("Load %d models\n", (int)bspModels.size());
@@ -62,7 +88,7 @@ bool Map::load(const char *path, const char *name, LoadConfig *config)
 	};
 	std::vector<surface_t> surfaces(faces.size());
 
-	Lightmap lightmap(config->lightmapSize);
+	Lightmap lightmap(config->lightmapSize, lightmapVecs.size() != 0);
 
 	lightmap.initBlock();
 
@@ -133,8 +159,14 @@ bool Map::load(const char *path, const char *name, LoadConfig *config)
 
 				if (f.lightofs != -1 && f.styles[0] != 255)
 				{
-					int bmins[2]{ floor(min_uv[0] / LM_SAMPLE_SIZE), floor(min_uv[1] / LM_SAMPLE_SIZE) };
-					int bmaxs[2]{ ceil(max_uv[0] / LM_SAMPLE_SIZE), ceil(max_uv[1] / LM_SAMPLE_SIZE) };
+					int sampleSize = lmSampleSize;
+					if (ti.faceInfo >= 0 && ti.faceInfo < faceInfos.size())
+					{
+						sampleSize = faceInfos[ti.faceInfo].textureStep;
+					}
+
+					int bmins[2]{ floor(min_uv[0] / sampleSize), floor(min_uv[1] / sampleSize) };
+					int bmaxs[2]{ ceil(max_uv[0] / sampleSize), ceil(max_uv[1] / sampleSize) };
 					fl.size[0] = bmaxs[0] - bmins[0] + 1;
 					fl.size[1] = bmaxs[1] - bmins[1] + 1;
 
@@ -146,13 +178,13 @@ bool Map::load(const char *path, const char *name, LoadConfig *config)
 						lightmap.allocBlock(fl.size[0], fl.size[1], fl.offs[0], fl.offs[1]);
 					}
 
-					lightmap.write(fl.size[0], fl.size[1], fl.offs[0], fl.offs[1], &lightmapPixels[f.lightofs]);
+					lightmap.write(fl.size[0], fl.size[1], fl.offs[0], fl.offs[1], &lightmapPixels[f.lightofs], lightmapVecs.size() ? &lightmapVecs[f.lightofs] : nullptr);
 					for (int j = 0; j < f.numedges; j++)
 					{
 						vert_t &v = vertices[faceVertOffset + j];
 						for (int k = 0; k < 2; k++)
 						{
-							v.uv2[k] = (v.uv[k] - bmins[k] * LM_SAMPLE_SIZE + fl.offs[k] * LM_SAMPLE_SIZE + LM_SAMPLE_SIZE * 0.5f) / (lightmap.block_size * LM_SAMPLE_SIZE);
+							v.uv2[k] = (v.uv[k] - bmins[k] * sampleSize + fl.offs[k] * sampleSize + sampleSize * 0.5f) / (lightmap.block_size * sampleSize);
 						}
 					}
 				}
@@ -248,6 +280,9 @@ bool Map::load(const char *path, const char *name, LoadConfig *config)
 
 void Map::loadTextures(FILE *f, dlump_t lump)
 {
+	if (!lump.filelen)
+		return;
+
 	fseek(f, lump.fileofs, SEEK_SET);
 	int32_t texCount = 0;
 	fread(&texCount, sizeof(uint32_t), 1, f);
@@ -261,6 +296,9 @@ void Map::loadTextures(FILE *f, dlump_t lump)
 		if (texOffs[i] == -1)
 		{
 			fprintf(stderr, "Error: texture %d bad offset\n", i);
+			textures[i].name = "default";
+			textures[i].width = 16;
+			textures[i].height = 16;
 			continue;
 		}
 

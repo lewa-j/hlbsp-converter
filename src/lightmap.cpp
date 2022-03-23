@@ -7,6 +7,8 @@ void Lightmap::initBlock()
 {
 	memset(allocated.data(), 0, allocated.size() * sizeof(allocated[0]));
 	buffer.create(block_size, block_size, Texture::RGB8);
+	if(haveVecs)
+		bufferVecs.create(block_size, block_size, Texture::RGB8);
 }
 
 bool Lightmap::allocBlock(int w, int h, int &x, int &y)
@@ -49,10 +51,15 @@ void Lightmap::uploadBlock(const std::string &name)
 {
 	buffer.save((name + "_lightmap" + std::to_string(current_lightmap_texture) + ".png").c_str());
 	buffer.clearColor();
+	if (haveVecs)
+	{
+		bufferVecs.save((name + "_deluxemap" + std::to_string(current_lightmap_texture) + ".png").c_str());
+		bufferVecs.clearColor();
+	}
 	current_lightmap_texture++;
 }
 
-void Lightmap::write(int w, int h, int x, int y, uint8_t *data)
+void Lightmap::write(int w, int h, int x, int y, uint8_t *data, uint8_t *dataVecs)
 {
 	uint8_t *dst = buffer.get(x, y);
 	for (int i = 0; i < h; i++)
@@ -60,5 +67,16 @@ void Lightmap::write(int w, int h, int x, int y, uint8_t *data)
 		memcpy(dst, data, w * 3);
 		dst += buffer.width * 3;
 		data += w * 3;
+	}
+
+	if (!haveVecs || !dataVecs)
+		return;
+
+	dst = bufferVecs.get(x, y);
+	for (int i = 0; i < h; i++)
+	{
+		memcpy(dst, dataVecs, w * 3);
+		dst += bufferVecs.width * 3;
+		dataVecs += w * 3;
 	}
 }
