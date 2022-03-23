@@ -5,10 +5,10 @@
 
 int main(int argc, const char *argv[])
 {
-	printf("bsp-converter by lewa_j v0.8 - 2022\n");
+	printf("bsp-converter by lewa_j v0.9 - 2022\n");
 	if (argc < 2 || !strcmp(argv[1], "-h"))
 	{
-		printf("Usage: bsp-converter map.bsp [-lm <lightmap atlas size>] [-skip_sky] [-lstyles <light style index>|all]\n");
+		printf("Usage: bsp-converter map.bsp [-lm <lightmap atlas size>] [-lstyles <light style index>|all] [-skip_sky] [-uint16]\n");
 		return -1;
 	}
 
@@ -41,7 +41,7 @@ int main(int argc, const char *argv[])
 				printf("Warning: '-lm' parameter requires a number - lightmap atlas resolution\n");
 			}
 		}
-		if (!strcmp(argv[i], "-lstyle"))
+		else if (!strcmp(argv[i], "-lstyle"))
 		{
 			if (argc > i + 1)
 			{
@@ -60,6 +60,11 @@ int main(int argc, const char *argv[])
 		{
 			config.skipSky = true;
 			printf("Sky polygons will be excluded from export\n");
+		}
+		else if (!strcmp(argv[i], "-uint16"))
+		{
+			config.uint16Inds = true;
+			printf("Set indices type to uint16\n");
 		}
 		else
 		{

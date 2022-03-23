@@ -110,22 +110,47 @@ bool Map::load(const char *path, const char *name, LoadConfig *config)
 			materialFaces[ti.miptex].push_back(fi);
 		}
 
-		models[mi].submeshes.resize(materialFaces.size());
-		models[mi].count = 0;
-		models[mi].offset = indicesOffset;
-		models[mi].vertOffset = vertices.size();
+		models[mi].push_back({});
+		model_t *model = &models[mi].back();
+
+		model->count = 0;
+		model->offset = indicesOffset;
+		model->vertOffset = vertices.size();
 		int indVertOffset = 0;
-		int submeshId = 0;
 		for (auto &mat : materialFaces)
 		{
-			models[mi].submeshes[submeshId].material = mat.first;
-			models[mi].submeshes[submeshId].offset = indicesOffset;
-			models[mi].submeshes[submeshId].count = 0;
+			submesh_t submesh;
+			submesh.material = mat.first;
+			submesh.offset = indicesOffset;
+			submesh.count = 0;
 
 			for (int i = 0; i < mat.second.size(); i++)
 			{
 				const auto &f = faces[mat.second[i]];
 				const auto &ti = texinfos[f.texinfo];
+
+				if (config->uint16Inds && (indVertOffset + f.numedges >= UINT16_MAX - 1))
+				{
+					model->vertCount = vertices.size() - model->vertOffset;
+					if (submesh.count)
+					{
+						indicesOffset += submesh.count;
+						model->count += submesh.count;
+						model->submeshes.push_back(submesh);
+					}
+
+					models[mi].push_back({});
+					model = &models[mi].back();
+
+					model->count = 0;
+					model->offset = indicesOffset;
+					model->vertOffset = vertices.size();
+					indVertOffset = 0;
+
+					submesh.material = mat.first;
+					submesh.offset = indicesOffset;
+					submesh.count = 0;
+				}
 
 				int faceVertOffset = vertices.size();
 
@@ -203,18 +228,29 @@ bool Map::load(const char *path, const char *name, LoadConfig *config)
 				// turn TRIANGLE_FAN into TRIANGLES
 				for (int j = 1; j < f.numedges - 1; j++)
 				{
-					indices.push_back(indVertOffset);
-					indices.push_back(indVertOffset + j + 1);
-					indices.push_back(indVertOffset + j);
+					if (config->uint16Inds)
+					{
+						indices16.push_back(indVertOffset);
+						indices16.push_back(indVertOffset + j + 1);
+						indices16.push_back(indVertOffset + j);
+					}
+					else
+					{
+						indices32.push_back(indVertOffset);
+						indices32.push_back(indVertOffset + j + 1);
+						indices32.push_back(indVertOffset + j);
+					}
 				}
-				models[mi].submeshes[submeshId].count += (f.numedges - 2) * 3;
+				submesh.count += (f.numedges - 2) * 3;
 				indVertOffset += f.numedges;
 			}
-			models[mi].count += models[mi].submeshes[submeshId].count;
-			indicesOffset += models[mi].submeshes[submeshId].count;
-			submeshId++;
+			if (submesh.count)
+				model->submeshes.push_back(submesh);
+
+			model->count += submesh.count;
+			indicesOffset += submesh.count;
 		}
-		models[mi].vertCount = vertices.size() - models[mi].vertOffset;
+		model->vertCount = vertices.size() - model->vertOffset;
 	}
 	lightmap.uploadBlock(name);
 

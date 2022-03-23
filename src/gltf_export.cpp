@@ -26,44 +26,73 @@ bool ExportMap(const std::string &name, hlbsp::Map &map)
 	int accessorId = 0;
 	int modelAccessorId = 0;
 	int bufferViewId = 0;
+	int meshId = 0;
+	int nodeId = 1;
 	const int indsBufferOffset = map.vertices.size() * sizeof(map.vertices[0]);
+	const int indSize = map.indices16.size() ? sizeof(uint16_t) : sizeof(uint32_t);
+	const int indType = map.indices16.size() ? UNSIGNED_SHORT : UNSIGNED_INT;
 	for (int i = 0; i < map.models.size(); i++)
 	{
-		nodes[0]["children"].push_back(i + 1);
-		nodes[i + 1] = { {"mesh", i}, {"name",std::string("*") + std::to_string(i)} };
+		int modelNodeId = nodeId;
+		nodeId++;
+		nodes[modelNodeId] = { {"name",std::string("*") + std::to_string(i)} };
+		nodes[0]["children"].push_back(modelNodeId);
 
-		bufferViews[bufferViewId + 0] = { {"buffer", 0}, {"byteOffset", indsBufferOffset + map.models[i].offset * sizeof(map.indices[0])}, {"byteLength", map.models[i].count * sizeof(map.indices[0])}, {"target", ELEMENT_ARRAY_BUFFER} };
-		bufferViews[bufferViewId + 1] = { {"buffer", 0}, {"byteOffset", map.models[i].vertOffset * sizeof(map.vertices[0])}, {"byteLength", map.models[i].vertCount * sizeof(map.vertices[0])},{"byteStride", 28}, {"target", ARRAY_BUFFER} };
-		hlbsp::vec3_t bmin{ FLT_MAX, FLT_MAX, FLT_MAX };
-		hlbsp::vec3_t bmax{ -FLT_MAX, -FLT_MAX, -FLT_MAX };
-		for (int j = 0; j < map.models[i].vertCount; j++)
+		if (map.models[i].size() == 1)
 		{
-			hlbsp::vec3_t v = map.vertices[map.models[i].vertOffset + j].pos;
-			bmin.x = fmin(bmin.x, v.x);
-			bmin.y = fmin(bmin.y, v.y);
-			bmin.z = fmin(bmin.z, v.z);
-			bmax.x = fmax(bmax.x, v.x);
-			bmax.y = fmax(bmax.y, v.y);
-			bmax.z = fmax(bmax.z, v.z);
+			nodes[modelNodeId]["mesh"] = meshId;
 		}
-		accessors[accessorId + 0] = { {"bufferView",bufferViewId + 1},{"byteOffset",0},{"componentType",FLOAT},{"count",map.models[i].vertCount},{"type","VEC3"}, {"min",{bmin.x, bmin.y, bmin.z}}, {"max",{bmax.x, bmax.y, bmax.z}} };
-		accessors[accessorId + 1] = { {"bufferView",bufferViewId + 1},{"byteOffset",12},{"componentType",FLOAT},{"count",map.models[i].vertCount},{"type","VEC2"} };
-		accessors[accessorId + 2] = { {"bufferView",bufferViewId + 1},{"byteOffset",20},{"componentType",FLOAT},{"count",map.models[i].vertCount},{"type","VEC2"} };
-		modelAccessorId = accessorId;
-		accessorId += 3;
 
-		meshes[i] = { {"name", name + "_mesh" + std::to_string(i)}, {"primitives",json::array()} };
-		for (int j = 0; j < map.models[i].submeshes.size(); j++)
+		for (int mmi = 0; mmi < map.models[i].size(); mmi++)
 		{
-			meshes[i]["primitives"][j] = {
-				{"attributes", {{"POSITION",modelAccessorId + 0}, {"TEXCOORD_0",modelAccessorId + 1}, {"TEXCOORD_1",modelAccessorId + 2}}},
-				{"indices", accessorId},
-				{"material", map.models[i].submeshes[j].material}
-			};
-			accessors[accessorId] = { {"bufferView", bufferViewId}, { "byteOffset", (map.models[i].submeshes[j].offset - map.models[i].offset) * sizeof(map.indices[0]) }, { "componentType", UNSIGNED_INT }, { "count", map.models[i].submeshes[j].count }, { "type","SCALAR" } };
-			accessorId++;
+			meshes[meshId] = { {"primitives",json::array()} };
+			if (map.models[i].size() != 1)
+			{
+				std::string meshName = name + "_mesh" + std::to_string(i) + "_" + std::to_string(mmi);
+				nodes[nodeId] = { {"name", meshName}, {"mesh", meshId} };
+				nodes[modelNodeId]["children"].push_back(nodeId);
+				nodeId++;
+				meshes[meshId]["name"] = meshName;
+			}
+			else
+			{
+				meshes[meshId]["name"] = name + "_mesh" + std::to_string(i);
+			}
+			const hlbsp::Map::model_t &model = map.models[i][mmi];
+
+			bufferViews[bufferViewId + 0] = { {"buffer", 0}, {"byteOffset", indsBufferOffset + model.offset * indSize}, {"byteLength", model.count * indSize}, {"target", ELEMENT_ARRAY_BUFFER} };
+			bufferViews[bufferViewId + 1] = { {"buffer", 0}, {"byteOffset", model.vertOffset * sizeof(map.vertices[0])}, {"byteLength", model.vertCount * sizeof(map.vertices[0])},{"byteStride", 28}, {"target", ARRAY_BUFFER} };
+			hlbsp::vec3_t bmin{ FLT_MAX, FLT_MAX, FLT_MAX };
+			hlbsp::vec3_t bmax{ -FLT_MAX, -FLT_MAX, -FLT_MAX };
+			for (int j = 0; j < model.vertCount; j++)
+			{
+				hlbsp::vec3_t v = map.vertices[model.vertOffset + j].pos;
+				bmin.x = fmin(bmin.x, v.x);
+				bmin.y = fmin(bmin.y, v.y);
+				bmin.z = fmin(bmin.z, v.z);
+				bmax.x = fmax(bmax.x, v.x);
+				bmax.y = fmax(bmax.y, v.y);
+				bmax.z = fmax(bmax.z, v.z);
+			}
+			accessors[accessorId + 0] = { {"bufferView",bufferViewId + 1},{"byteOffset",0},{"componentType",FLOAT},{"count",model.vertCount},{"type","VEC3"}, {"min",{bmin.x, bmin.y, bmin.z}}, {"max",{bmax.x, bmax.y, bmax.z}} };
+			accessors[accessorId + 1] = { {"bufferView",bufferViewId + 1},{"byteOffset",12},{"componentType",FLOAT},{"count",model.vertCount},{"type","VEC2"} };
+			accessors[accessorId + 2] = { {"bufferView",bufferViewId + 1},{"byteOffset",20},{"componentType",FLOAT},{"count",model.vertCount},{"type","VEC2"} };
+			modelAccessorId = accessorId;
+			accessorId += 3;
+
+			for (int j = 0; j < model.submeshes.size(); j++)
+			{
+				meshes[meshId]["primitives"][j] = {
+					{"attributes", {{"POSITION",modelAccessorId + 0}, {"TEXCOORD_0",modelAccessorId + 1}, {"TEXCOORD_1",modelAccessorId + 2}}},
+					{"indices", accessorId},
+					{"material", model.submeshes[j].material}
+				};
+				accessors[accessorId] = { {"bufferView", bufferViewId}, { "byteOffset", (model.submeshes[j].offset - model.offset) * indSize }, { "componentType", indType }, { "count", model.submeshes[j].count }, { "type","SCALAR" } };
+				accessorId++;
+			}
+			meshId++;
+			bufferViewId += 2;
 		}
-		bufferViewId += 2;
 	}
 
 	_mkdir("textures");
@@ -95,17 +124,27 @@ bool ExportMap(const std::string &name, hlbsp::Map &map)
 	images[lmapTexIndex] = { {"uri", name + "_lightmap0.png"} };
 	textures[lmapTexIndex] = { {"source", lmapTexIndex} };
 
+	int vertsLen = map.vertices.size() * sizeof(map.vertices[0]);
+	int indsLen = 0;
+
 	std::string bufferName = name + ".bin";
 
-	int vertsLen = map.vertices.size() * sizeof(map.vertices[0]);
-	int indsLen = map.indices.size() * sizeof(map.indices[0]);
-	j["buffers"] = { { {"uri", bufferName}, {"byteLength", vertsLen + indsLen} } };
-
 	printf("Writing: %s\n", bufferName.c_str());
-	std::ofstream verts(bufferName, std::ios_base::binary);
-	verts.write((char *)&map.vertices[0], vertsLen);
-	verts.write((char *)&map.indices[0], indsLen);
-	verts.close();
+	std::ofstream bufferFile(bufferName, std::ios_base::binary);
+	bufferFile.write((char *)&map.vertices[0], vertsLen);
+	if (map.indices16.size())
+	{
+		indsLen = map.indices16.size() * sizeof(map.indices16[0]);
+		bufferFile.write((char *)&map.indices16[0], indsLen);
+	}
+	else
+	{
+		indsLen = map.indices32.size() * sizeof(map.indices32[0]);
+		bufferFile.write((char *)&map.indices32[0], indsLen);
+	}
+	bufferFile.close();
+
+	j["buffers"] = { { {"uri", bufferName}, {"byteLength", vertsLen + indsLen} } };
 
 	printf("Writing: %s.gltf\n", name.c_str());
 	std::ofstream o(name + ".gltf");

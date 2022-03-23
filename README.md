@@ -1,12 +1,13 @@
 # hlbsp-converter
 
-A tool to convert bsp maps (Half-Life and other GoldSrc games) into gltf scenes.
+A tool to convert bsp maps (Half-Life and other GoldSrc games) into glTF scenes.
 
 ## Key features:
 
 * Export embedded texture
 * Lightmaps!
 * Option to exclude sky polygons
+* BSP31 support (Xash3D)
 
 ## Usage
 
@@ -18,7 +19,8 @@ A tool to convert bsp maps (Half-Life and other GoldSrc games) into gltf scenes.
 
 * `-lm <number>` - set a lightmap atlas size
 * `-skip_sky` - exclude polygons with 'sky' texture from export 
-* `-lstyle <number>|all` - export lightmap with a specified lightstyle index or all lightyles in one
+* `-lstyle <number>|all` - export lightmap with a specified lightstyle index or all lightyles in one.
+* `-uint16` - sets index buffer type to usigned short. Useful for old mobile GPU without GL_OES_element_index_uint. Will split models into smaller meshes if required.
 
 ## Dependencies (already included)
 

@@ -160,6 +160,7 @@ struct LoadConfig
 	int lightmapSize = 1024;
 	int lstyle = -1;
 	bool lstylesAll = false;
+	bool uint16Inds = false;
 };
 
 class Map
@@ -189,8 +190,10 @@ public:
 	};
 
 	std::vector<vert_t> vertices;
-	std::vector<uint32_t> indices;
-	std::vector<model_t> models;
+	std::vector<uint16_t> indices16;
+	std::vector<uint32_t> indices32;
+	// model can contain multiple meshes
+	std::vector<std::vector<model_t> > models;
 
 	std::vector<dface_t> faces;
 	std::vector<int> surfedges;
