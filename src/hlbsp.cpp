@@ -213,18 +213,19 @@ bool Map::load(const char *path, const char *name, LoadConfig *config)
 			if (fl.size[0] * fl.size[1] == 0)
 				continue;
 			std::vector<uint8_t> flmap(fl.size[0] * fl.size[1] * 3);
-			memcpy(&flmap[0], &lightmapPixels[f.lightofs], flmap.size());
+			memset(&flmap[0], 0, flmap.size());
 			int lmOffset = 0;
-			for (int s = 1; s < LM_STYLES && f.styles[s] != 255; s++)
+			for (int s = 0; s < LM_STYLES && f.styles[s] != 255; s++)
 			{
-				lmOffset += fl.size[0] * fl.size[1] * 3;
-				if (!config->lstylesAll && f.styles[s] != config->lstyle)
-					continue;
-				for (int l = 0; l < flmap.size(); l++)
+				if (config->lstylesAll || f.styles[s] == config->lstyle)
 				{
-					int val = flmap[l] + lightmapPixels[f.lightofs + lmOffset + l];
-					flmap[l] = (val > 255) ? 255 : val;
+					for (int l = 0; l < flmap.size(); l++)
+					{
+						int val = flmap[l] + lightmapPixels[f.lightofs + lmOffset + l];
+						flmap[l] = (val > 255) ? 255 : val;
+					}
 				}
+				lmOffset += fl.size[0] * fl.size[1] * 3;
 			}
 
 			const uint8_t *data = flmap.data();
