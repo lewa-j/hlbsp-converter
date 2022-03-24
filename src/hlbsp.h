@@ -1,7 +1,7 @@
 // Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 #pragma once
 
-#include "Texture.h"
+#include "map.h"
 #include <stdint.h>
 #include <vector>
 
@@ -59,9 +59,6 @@ enum class SurfaceFlags
 
 enum
 {
-	HLBSP_VERSION	= 30,	// half-life regular version
-	XTBSP_VERSION	= 31,	// extended lightmaps and expanded clipnodes limit
-
 	IDEXTRAHEADER	= (('H'<<24)+('S'<<16)+('A'<<8)+'X'), // little-endian "XASH"
 	EXTRA_VERSION	= 4,
 
@@ -91,11 +88,6 @@ struct dextrahdr_t
 	int	id;	// must be little endian XASH
 	int	version;
 	dlump_t	lumps[EXTRA_LUMPS];
-};
-
-struct vec3_t
-{
-	float x, y, z;
 };
 
 struct dmodel_t
@@ -152,60 +144,6 @@ struct mip_t
 	uint32_t	width;
 	uint32_t	height;
 	uint32_t	offsets[4];	// four mip maps stored
-};
-
-struct LoadConfig
-{
-	bool skipSky = false;
-	int lightmapSize = 1024;
-	int lstyle = -1;
-	bool lstylesAll = false;
-	bool uint16Inds = false;
-};
-
-class Map
-{
-public:
-	bool load(const char *path, const char *name, LoadConfig *config = nullptr);
-
-	struct vert_t
-	{
-		vec3_t pos;
-		float uv[2];
-		float uv2[2];
-	};
-	struct submesh_t
-	{
-		int offset;
-		int count;
-		int material;
-	};
-	struct model_t
-	{
-		int offset;
-		int count;
-		int vertOffset;
-		int vertCount;
-		std::vector<submesh_t> submeshes;
-	};
-
-	std::vector<vert_t> vertices;
-	std::vector<uint16_t> indices16;
-	std::vector<uint32_t> indices32;
-	// model can contain multiple meshes
-	std::vector<std::vector<model_t> > models;
-
-	std::vector<dface_t> faces;
-	std::vector<int> surfedges;
-	std::vector<dedge_t> edges;
-	std::vector<dtexinfo_t> texinfos;
-	std::vector<Texture> textures;
-	std::vector<uint8_t> lightmapPixels;
-	std::vector<uint8_t> lightmapVecs;
-
-	int lmSampleSize = 16;
-private:
-	void loadTextures(FILE *f, dlump_t lump);
 };
 
 }//hlbsp

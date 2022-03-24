@@ -4,26 +4,14 @@
 #include <stdio.h>
 #include <map>
 
-namespace hlbsp
+bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 {
-
-bool Map::load(const char *path, const char *name, LoadConfig *config)
-{
-	static LoadConfig defaultConfig;
-	if (!config)
-		config = &defaultConfig;
-
-	FILE *f = fopen(path, "rb");
-	if (!f)
-	{
-		fprintf(stderr, "Error: can't open %s: %s\n", path, strerror(errno));
-		return false;
-	}
-	printf("Reading %s\n", path);
+	using namespace hlbsp;
 
 	dheader_t header;
 	dheader31_t header31;
 	dextrahdr_t headerExtra;
+	int lmSampleSize = 16;
 	fread(&header, sizeof(header), 1, f);
 
 	switch (header.version)
@@ -51,6 +39,12 @@ bool Map::load(const char *path, const char *name, LoadConfig *config)
 	std::vector<vec3_t> bspVertices;
 	std::vector<dmodel_t> bspModels;
 	std::vector<dfaceinfo_t> faceInfos;
+	std::vector<dface_t> faces;
+	std::vector<int> surfedges;
+	std::vector<dedge_t> edges;
+	std::vector<dtexinfo_t> texinfos;
+	std::vector<uint8_t> lightmapPixels;
+	std::vector<uint8_t> lightmapVecs;
 
 #define READ_LUMP(to, lump) \
 	to.resize(lump.filelen / sizeof(to[0])); \
@@ -76,7 +70,7 @@ bool Map::load(const char *path, const char *name, LoadConfig *config)
 
 	printf("Load %d models\n", (int)bspModels.size());
 
-	loadTextures(f, header.lumps[LUMP_TEXTURES]);
+	hlbsp_loadTextures(f, header.lumps[LUMP_TEXTURES].fileofs, header.lumps[LUMP_TEXTURES].filelen);
 
 	fclose(f);
 
@@ -314,12 +308,13 @@ bool Map::load(const char *path, const char *name, LoadConfig *config)
 	return true;
 }
 
-void Map::loadTextures(FILE *f, dlump_t lump)
+void Map::hlbsp_loadTextures(FILE *f, int fileofs, int filelen)
 {
-	if (!lump.filelen)
+	using namespace hlbsp;
+	if (!filelen)
 		return;
 
-	fseek(f, lump.fileofs, SEEK_SET);
+	fseek(f, fileofs, SEEK_SET);
 	int32_t texCount = 0;
 	fread(&texCount, sizeof(uint32_t), 1, f);
 	printf("Load %d textures\n", texCount);
@@ -338,7 +333,7 @@ void Map::loadTextures(FILE *f, dlump_t lump)
 			continue;
 		}
 
-		fseek(f, lump.fileofs + texOffs[i], SEEK_SET);
+		fseek(f, fileofs + texOffs[i], SEEK_SET);
 		mip_t texHeader;
 		fread(&texHeader, sizeof(texHeader), 1, f);
 
@@ -357,7 +352,7 @@ void Map::loadTextures(FILE *f, dlump_t lump)
 
 		int len = texHeader.width * texHeader.height;
 		std::vector<uint8_t> texData(((len * 85) >> 6) + sizeof(uint16_t) + 256 * 3);
-		fseek(f, lump.fileofs + texOffs[i] + texHeader.offsets[0], SEEK_SET);
+		fseek(f, fileofs + texOffs[i] + texHeader.offsets[0], SEEK_SET);
 		fread(&texData[0], texData.size(), 1, f);
 		const uint8_t *ids = &texData[0];
 		// two bytes before palette is a count of colors but it is always 256
@@ -387,4 +382,3 @@ void Map::loadTextures(FILE *f, dlump_t lump)
 	}
 }
 
-}//hlbsp

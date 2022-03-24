@@ -1,7 +1,7 @@
 // Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 #pragma once
 
-#include "hlbsp.h"
+#include "map.h"
 
 namespace gltf
 {
@@ -15,5 +15,5 @@ namespace gltf
 		ELEMENT_ARRAY_BUFFER = 0x8893
 	};
 
-	bool ExportMap(const std::string &name, hlbsp::Map &map);
+	bool ExportMap(const std::string &name, Map &map);
 }

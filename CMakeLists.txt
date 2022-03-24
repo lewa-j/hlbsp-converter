@@ -13,6 +13,10 @@ add_executable (bsp-converter
 	"src/lightmap.h"
 	"src/lightmap.cpp"
 	"src/gltf_export.h"
-	"src/gltf_export.cpp")
+	"src/gltf_export.cpp"
+	"src/sourcebsp.h"
+	"src/sourcebsp.cpp"
+	"src/map.h"
+	"src/map.cpp")
 
 install(TARGETS bsp-converter DESTINATION bin)

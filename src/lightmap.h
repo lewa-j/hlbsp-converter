@@ -7,8 +7,8 @@
 class Lightmap
 {
 public:
-	Lightmap(int size, bool vecs = false) : 
-		block_size(size), haveVecs(vecs), allocated(block_size){}
+	Lightmap(int size, bool vecs = false, bool rgbexp_ = false) : 
+		block_size(size), haveVecs(vecs), rgbexp(rgbexp_), allocated(block_size){}
 	void initBlock();
 	bool allocBlock(int w, int h, int &x, int &y);
 	void uploadBlock(const std::string &name);
@@ -17,6 +17,7 @@ public:
 
 	int block_size = 1024;
 	bool haveVecs = false;
+	bool rgbexp = false;
 	std::vector<int> allocated;
 	int current_lightmap_texture = 0;
 	Texture buffer;

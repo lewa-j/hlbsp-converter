@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 #include "bsp-converter.h"
-#include "hlbsp.h"
+#include "map.h"
 #include "gltf_export.h"
 
 int main(int argc, const char *argv[])
@@ -25,7 +25,7 @@ int main(int argc, const char *argv[])
 			mapName = mapName.substr(0, l);
 	}
 
-	hlbsp::LoadConfig config;
+	Map::LoadConfig config;
 
 	for (int i = 2; i < argc; i++)
 	{
@@ -74,7 +74,7 @@ int main(int argc, const char *argv[])
 	if (!config.lightmapSize)
 		config.lightmapSize = 1024;
 
-	hlbsp::Map map;
+	Map map;
 	if (!map.load(argv[1], mapName.c_str(), &config))
 	{
 		fprintf(stderr, "Can't load map\n");

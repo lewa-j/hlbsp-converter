@@ -7,7 +7,7 @@
 namespace gltf
 {
 
-bool ExportMap(const std::string &name, hlbsp::Map &map)
+bool ExportMap(const std::string &name, Map &map)
 {
 	using nlohmann::json;
 	json j;
@@ -58,15 +58,15 @@ bool ExportMap(const std::string &name, hlbsp::Map &map)
 			{
 				meshes[meshId]["name"] = name + "_mesh" + std::to_string(i);
 			}
-			const hlbsp::Map::model_t &model = map.models[i][mmi];
+			const Map::model_t &model = map.models[i][mmi];
 
 			bufferViews[bufferViewId + 0] = { {"buffer", 0}, {"byteOffset", indsBufferOffset + model.offset * indSize}, {"byteLength", model.count * indSize}, {"target", ELEMENT_ARRAY_BUFFER} };
 			bufferViews[bufferViewId + 1] = { {"buffer", 0}, {"byteOffset", model.vertOffset * sizeof(map.vertices[0])}, {"byteLength", model.vertCount * sizeof(map.vertices[0])},{"byteStride", 28}, {"target", ARRAY_BUFFER} };
-			hlbsp::vec3_t bmin{ FLT_MAX, FLT_MAX, FLT_MAX };
-			hlbsp::vec3_t bmax{ -FLT_MAX, -FLT_MAX, -FLT_MAX };
+			vec3_t bmin{ FLT_MAX, FLT_MAX, FLT_MAX };
+			vec3_t bmax{ -FLT_MAX, -FLT_MAX, -FLT_MAX };
 			for (int j = 0; j < model.vertCount; j++)
 			{
-				hlbsp::vec3_t v = map.vertices[model.vertOffset + j].pos;
+				vec3_t v = map.vertices[model.vertOffset + j].pos;
 				bmin.x = fmin(bmin.x, v.x);
 				bmin.y = fmin(bmin.y, v.y);
 				bmin.z = fmin(bmin.z, v.z);
