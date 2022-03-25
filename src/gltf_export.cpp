@@ -97,7 +97,6 @@ bool ExportMap(const std::string &name, Map &map)
 
 	_mkdir("textures");
 
-	auto &materials = j["materials"];
 	auto &textures = j["textures"];
 	auto &images = j["images"];
 	//TODO: write only used textures
@@ -110,15 +109,25 @@ bool ExportMap(const std::string &name, Map &map)
 
 		images[i] = { {"uri", texturePath} };
 		textures[i] = { {"source", i} };
+	}
+
+	auto &materials = j["materials"];
+	for (int i = 0; i < map.materials.size(); i++)
+	{
 		materials[i] = {
-			{"name", map.textures[i].name},
-			{"pbrMetallicRoughness",{
-				{"baseColorTexture",{{"index",i}}},
-				{"metallicFactor", 0}
-			}}
-			//,{"emissiveTexture", {{"index", lmapTexIndex}, {"texCoord", 1}}},
-			//{"emissiveFactor", {1,1,1}}
+			{"name", map.materials[i].name}
 		};
+		if (map.materials[i].texture != -1)
+		{
+			materials[i]["pbrMetallicRoughness"] = {
+				{"baseColorTexture",{{"index", map.materials[i].texture}}},
+				{"metallicFactor", 0}
+			};
+			if (map.materials[i].texture == lmapTexIndex)
+				materials[i]["pbrMetallicRoughness"]["baseColorTexture"]["texCoord"] = 1;
+		}
+		//materials[i]["emissiveTexture"] = { {"index", lmapTexIndex}, {"texCoord", 1} };
+		//materials[i]["emissiveFactor"] = { 1,1,1 };
 	}
 
 	images[lmapTexIndex] = { {"uri", name + "_lightmap0.png"} };

@@ -74,6 +74,13 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 
 	fclose(f);
 
+	materials.resize(textures.size());
+	for (int i = 0; i < materials.size(); i++)
+	{
+		materials[i].name = textures[i].name;
+		materials[i].texture = i;
+	}
+
 	//save lightmap packing info and reuse it for lightsyles export
 	struct surface_t
 	{

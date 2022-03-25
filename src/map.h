@@ -50,6 +50,11 @@ public:
 		int vertCount;
 		std::vector<submesh_t> submeshes;
 	};
+	struct material_t
+	{
+		std::string name;
+		int texture = -1;
+	};
 
 	std::vector<vert_t> vertices;
 	std::vector<uint16_t> indices16;
@@ -57,6 +62,7 @@ public:
 	// model can contain multiple meshes
 	std::vector<std::vector<model_t> > models;
 	std::vector<Texture> textures;
+	std::vector<material_t> materials;
 
 private:
 	bool load_hlbsp(FILE *f, const char *name, LoadConfig *config = nullptr);

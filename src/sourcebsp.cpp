@@ -119,8 +119,9 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 	}
 	lightmap.uploadBlock(name);
 
-	textures.resize(1);
-	textures[0].name = "default";
+	materials.resize(1);
+	materials[0].name = "default";
+	materials[0].texture = textures.size();//lightmap
 
 	return true;
 }
