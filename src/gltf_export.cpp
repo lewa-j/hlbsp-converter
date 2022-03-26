@@ -115,16 +115,19 @@ bool ExportMap(const std::string &name, Map &map)
 	auto &materials = j["materials"];
 	for (int i = 0; i < map.materials.size(); i++)
 	{
-		materials[i] = {
-			{"name", map.materials[i].name}
-		};
-		if (map.materials[i].texture != -1)
+		const auto &mat = map.materials[i];
+		materials[i] = {{"name", mat.name}};
+
+		if (mat.alphaMask)
+			materials[i]["alphaMode"] = "MASK";
+
+		if (mat.texture != -1)
 		{
 			materials[i]["pbrMetallicRoughness"] = {
-				{"baseColorTexture",{{"index", map.materials[i].texture}}},
+				{"baseColorTexture",{{"index", mat.texture}}},
 				{"metallicFactor", 0}
 			};
-			if (map.materials[i].texture == lmapTexIndex)
+			if (mat.texture == lmapTexIndex)
 				materials[i]["pbrMetallicRoughness"]["baseColorTexture"]["texCoord"] = 1;
 		}
 		//materials[i]["emissiveTexture"] = { {"index", lmapTexIndex}, {"texCoord", 1} };

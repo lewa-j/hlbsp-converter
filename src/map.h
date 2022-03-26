@@ -54,6 +54,7 @@ public:
 	{
 		std::string name;
 		int texture = -1;
+		bool alphaMask = false;
 	};
 
 	std::vector<vert_t> vertices;

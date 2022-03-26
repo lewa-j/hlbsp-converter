@@ -79,6 +79,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 	{
 		materials[i].name = textures[i].name;
 		materials[i].texture = i;
+		materials[i].alphaMask = (textures[i].format == Texture::RGBA8);
 	}
 
 	//save lightmap packing info and reuse it for lightsyles export
@@ -354,7 +355,7 @@ void Map::hlbsp_loadTextures(FILE *f, int fileofs, int filelen)
 			continue;
 		}
 
-		bool hasAlpha = texHeader.name[0] == '{';
+		bool hasAlpha = strchr(texHeader.name, '{') != nullptr;
 		textures[i].create(texHeader.width, texHeader.height, hasAlpha ? Texture::RGBA8 : Texture::RGB8);
 
 		int len = texHeader.width * texHeader.height;
