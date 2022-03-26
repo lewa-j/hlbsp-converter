@@ -5,7 +5,7 @@
 
 int main(int argc, const char *argv[])
 {
-	printf("bsp-converter by lewa_j v0.9 - 2022\n");
+	printf(HLBSP_CONVERTER_NAME "\n");
 	if (argc < 2 || !strcmp(argv[1], "-h"))
 	{
 		printf("Usage: bsp-converter map.bsp [-lm <lightmap atlas size>] [-lstyles <light style index>|all] [-skip_sky] [-uint16]\n");

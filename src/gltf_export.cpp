@@ -1,5 +1,6 @@
 // Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 #include "gltf_export.h"
+#include "bsp-converter.h"
 #include "nlohmann/json.hpp"
 #include <fstream>
 #include <direct.h>
@@ -11,7 +12,7 @@ bool ExportMap(const std::string &name, Map &map)
 {
 	using nlohmann::json;
 	json j;
-	j["asset"] = { {"version", "2.0"} };
+	j["asset"] = { {"version", "2.0"}, {"generator", HLBSP_CONVERTER_NAME}};
 	j["scene"] = 0;
 	j["scenes"] = { { { "nodes", {0} } } };
 	auto &nodes = j["nodes"];
