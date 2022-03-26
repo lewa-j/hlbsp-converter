@@ -17,6 +17,8 @@ add_executable (bsp-converter
 	"src/sourcebsp.h"
 	"src/sourcebsp.cpp"
 	"src/map.h"
-	"src/map.cpp")
+	"src/map.cpp"
+	"src/wad.h"
+	"src/wad.cpp")
 
 install(TARGETS bsp-converter DESTINATION bin)

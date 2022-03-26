@@ -8,7 +8,7 @@ int main(int argc, const char *argv[])
 	printf(HLBSP_CONVERTER_NAME "\n");
 	if (argc < 2 || !strcmp(argv[1], "-h"))
 	{
-		printf("Usage: bsp-converter map.bsp [-lm <lightmap atlas size>] [-lstyles <light style index>|all] [-skip_sky] [-uint16]\n");
+		printf("Usage: bsp-converter map.bsp [-lm <lightmap atlas size>] [-lstyles <light style index>|all] [-skip_sky] [-uint16] [-tex]\n");
 		return -1;
 	}
 
@@ -65,6 +65,11 @@ int main(int argc, const char *argv[])
 		{
 			config.uint16Inds = true;
 			printf("Set indices type to uint16\n");
+		}
+		else if (!strcmp(argv[i], "-tex"))
+		{
+			config.allTextures = true;
+			printf("All textures will be exported\n");
 		}
 		else
 		{

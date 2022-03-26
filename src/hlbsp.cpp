@@ -1,6 +1,7 @@
 // Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 #include "hlbsp.h"
 #include "lightmap.h"
+#include "wad.h"
 #include <stdio.h>
 #include <map>
 
@@ -70,7 +71,17 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 
 	printf("Load %d models\n", (int)bspModels.size());
 
-	hlbsp_loadTextures(f, header.lumps[LUMP_TEXTURES].fileofs, header.lumps[LUMP_TEXTURES].filelen);
+	std::vector<WadFile> wads;
+	if (config->allTextures)
+	{
+		//Testing
+		wads.resize(3);
+		wads[0].Load("halflife.wad");
+		wads[1].Load("liquids.wad");
+		wads[2].Load("xeno.wad");
+	}
+
+	hlbsp_loadTextures(f, header.lumps[LUMP_TEXTURES].fileofs, header.lumps[LUMP_TEXTURES].filelen, wads);
 
 	fclose(f);
 
@@ -316,7 +327,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 	return true;
 }
 
-void Map::hlbsp_loadTextures(FILE *f, int fileofs, int filelen)
+void Map::hlbsp_loadTextures(FILE *f, int fileofs, int filelen, std::vector<WadFile> wads)
 {
 	using namespace hlbsp;
 	if (!filelen)
@@ -349,19 +360,41 @@ void Map::hlbsp_loadTextures(FILE *f, int fileofs, int filelen)
 		textures[i].width = texHeader.width;
 		textures[i].height = texHeader.height;
 
+		std::vector<uint8_t> buffer;
+		uint8_t *texData;
+		int len;
+
 		if (texHeader.offsets[0] == 0)
 		{
 			// reference to a texture stored inside a *.wad
-			continue;
+			int w = 0;
+			for (; w < wads.size(); w++)
+			{
+				if (wads[w].GetLump(texHeader.name, buffer))
+					break;
+			}
+
+			if (w == wads.size())
+				continue; // not found
+
+			texData = &buffer[0];
+			// overwrite mip header with wad
+			memcpy(&texHeader, texData, sizeof(texHeader));
+			len = texHeader.width * texHeader.height;
+			texData += texHeader.offsets[0];
+		}
+		else
+		{
+			len = texHeader.width * texHeader.height;
+			buffer.resize(((len * 85) >> 6) + sizeof(uint16_t) + 256 * 3);
+			fseek(f, fileofs + texOffs[i] + texHeader.offsets[0], SEEK_SET);
+			fread(&buffer[0], buffer.size(), 1, f);
+			texData = &buffer[0];
 		}
 
 		bool hasAlpha = strchr(texHeader.name, '{') != nullptr;
 		textures[i].create(texHeader.width, texHeader.height, hasAlpha ? Texture::RGBA8 : Texture::RGB8);
 
-		int len = texHeader.width * texHeader.height;
-		std::vector<uint8_t> texData(((len * 85) >> 6) + sizeof(uint16_t) + 256 * 3);
-		fseek(f, fileofs + texOffs[i] + texHeader.offsets[0], SEEK_SET);
-		fread(&texData[0], texData.size(), 1, f);
 		const uint8_t *ids = &texData[0];
 		// two bytes before palette is a count of colors but it is always 256
 		const uint8_t *pal = &texData[((len * 85) >> 6) + sizeof(uint16_t)];
