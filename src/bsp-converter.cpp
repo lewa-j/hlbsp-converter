@@ -3,6 +3,12 @@
 #include "map.h"
 #include "gltf_export.h"
 
+#if _MSC_VER
+#include <Shlwapi.h>
+#pragma comment(lib, "Shlwapi.lib")
+#define strcasestr StrStrIA
+#endif
+
 int main(int argc, const char *argv[])
 {
 	printf(HLBSP_CONVERTER_NAME "\n");
@@ -29,7 +35,19 @@ int main(int argc, const char *argv[])
 
 	for (int i = 2; i < argc; i++)
 	{
-		if (!strcmp(argv[i], "-lm"))
+		if (!strcmp(argv[i], "-game"))
+		{
+			if (argc > i + 1)
+			{
+				i++;
+				config.gamePath = argv[i];
+			}
+			else
+			{
+				printf("Warning: '-game' parameter requires a path\n");
+			}
+		}
+		else if (!strcmp(argv[i], "-lm"))
 		{
 			if (argc > i + 1)
 			{
@@ -79,8 +97,28 @@ int main(int argc, const char *argv[])
 	if (!config.lightmapSize)
 		config.lightmapSize = 1024;
 
+	if (config.gamePath.size() && config.gamePath.back() != '/' && config.gamePath.back() != '\\')
+	{
+		config.gamePath += '/';
+	}
+
+	std::string mapPath;
+	if (strcasestr(argv[1], ".bsp") != nullptr)
+	{
+		mapPath = argv[1];
+	}
+	else
+	{
+		if (config.gamePath.size())
+			mapPath = config.gamePath;
+
+		mapPath += "maps/";
+		mapPath += argv[1];
+		mapPath += ".bsp";
+	}
+
 	Map map;
-	if (!map.load(argv[1], mapName.c_str(), &config))
+	if (!map.load(mapPath.c_str(), mapName.c_str(), &config))
 	{
 		fprintf(stderr, "Can't load map\n");
 		return -1;

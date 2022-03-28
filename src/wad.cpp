@@ -32,6 +32,9 @@ bool WadFile::Load(const char *path)
 		fseek(f, header.infotableofs, SEEK_SET);
 		fread(&lumps[0], sizeof(lumps[0]), lumps.size(), f);
 	}
+
+	printf("Loaded %s with %d lumps\n", path, lumps.size());
+
 	return true;
 }
 

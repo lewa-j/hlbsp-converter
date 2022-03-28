@@ -76,9 +76,9 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 	{
 		//Testing
 		wads.resize(3);
-		wads[0].Load("halflife.wad");
-		wads[1].Load("liquids.wad");
-		wads[2].Load("xeno.wad");
+		wads[0].Load((config->gamePath + "halflife.wad").c_str());
+		wads[1].Load((config->gamePath + "liquids.wad").c_str());
+		wads[2].Load((config->gamePath + "xeno.wad").c_str());
 	}
 
 	hlbsp_loadTextures(f, header.lumps[LUMP_TEXTURES].fileofs, header.lumps[LUMP_TEXTURES].filelen, wads);

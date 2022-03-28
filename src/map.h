@@ -24,6 +24,7 @@ class Map
 public:
 	struct LoadConfig
 	{
+		std::string gamePath;
 		bool skipSky = false;
 		int lightmapSize = 1024;
 		int lstyle = -1;
