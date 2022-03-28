@@ -130,8 +130,7 @@ bool ExportMap(const std::string &name, Map &map)
 			if (mat.texture == lmapTexIndex)
 				materials[i]["pbrMetallicRoughness"]["baseColorTexture"]["texCoord"] = 1;
 		}
-		//materials[i]["emissiveTexture"] = { {"index", lmapTexIndex}, {"texCoord", 1} };
-		//materials[i]["emissiveFactor"] = { 1,1,1 };
+		materials[i]["extensions"] = { {"EXT_materials_lightmap",{{"lightmapTexture", { {"index", lmapTexIndex}, {"texCoord", 1} }}}} };
 	}
 
 	images[lmapTexIndex] = { {"uri", name + "_lightmap0.png"} };
