@@ -30,3 +30,5 @@ public:
 	std::vector<uint8_t> data;
 	std::string name;
 };
+
+bool LoadMipTexture(const uint8_t *data, Texture &tex, int type = 67);

@@ -361,8 +361,6 @@ void Map::hlbsp_loadTextures(FILE *f, int fileofs, int filelen, std::vector<WadF
 		textures[i].height = texHeader.height;
 
 		std::vector<uint8_t> buffer;
-		uint8_t *texData;
-		int len;
 
 		if (texHeader.offsets[0] == 0)
 		{
@@ -370,56 +368,23 @@ void Map::hlbsp_loadTextures(FILE *f, int fileofs, int filelen, std::vector<WadF
 			int w = 0;
 			for (; w < wads.size(); w++)
 			{
-				if (wads[w].GetLump(texHeader.name, buffer))
+				if (wads[w].FindLump(texHeader.name, buffer))
 					break;
 			}
 
 			if (w == wads.size())
 				continue; // not found
-
-			texData = &buffer[0];
-			// overwrite mip header with wad
-			memcpy(&texHeader, texData, sizeof(texHeader));
-			len = texHeader.width * texHeader.height;
-			texData += texHeader.offsets[0];
 		}
 		else
 		{
-			len = texHeader.width * texHeader.height;
-			buffer.resize(((len * 85) >> 6) + sizeof(uint16_t) + 256 * 3);
-			fseek(f, fileofs + texOffs[i] + texHeader.offsets[0], SEEK_SET);
+			buffer.resize(sizeof(mip_t) + ((texHeader.width * texHeader.height * 85) >> 6) + sizeof(uint16_t) + 256 * 3);
+			fseek(f, fileofs + texOffs[i], SEEK_SET);
 			fread(&buffer[0], buffer.size(), 1, f);
-			texData = &buffer[0];
 		}
 
-		bool hasAlpha = strchr(texHeader.name, '{') != nullptr;
-		textures[i].create(texHeader.width, texHeader.height, hasAlpha ? Texture::RGBA8 : Texture::RGB8);
+		LoadMipTexture(&buffer[0], textures[i]);
 
-		const uint8_t *ids = &texData[0];
-		// two bytes before palette is a count of colors but it is always 256
-		const uint8_t *pal = &texData[((len * 85) >> 6) + sizeof(uint16_t)];
-		uint8_t *dst = &textures[i].data[0];
-
-		// decode 8bit paletted texture into 24bit rgb or 32bit rgba
-		for (int j = 0; j < len; j++)
-		{
-			int col = ids[j] * 3;
-			dst[0] = pal[col + 0];
-			dst[1] = pal[col + 1];
-			dst[2] = pal[col + 2];
-			if (hasAlpha)
-			{
-				if (col == (255 * 3))
-					dst[0] = dst[1] = dst[2] = dst[3] = 0;
-				else
-					dst[3] = 255;
-				dst += 4;
-			}
-			else
-				dst += 3;
-		}
-
-		printf("Loaded texture: %s \t%dx%d\n", texHeader.name, texHeader.width, texHeader.height);
+		printf("Loaded texture: %s \t%dx%d\n", textures[i].name.c_str(), textures[i].width, textures[i].height);
 	}
 }
 

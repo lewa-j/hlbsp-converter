@@ -10,7 +10,9 @@ class WadFile
 public:
 	enum
 	{
-		IDWAD3HEADER = (('3'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD3" half-life wads
+		IDWAD3HEADER = (('3'<<24)+('D'<<16)+('A'<<8)+'W'),	// little-endian "WAD3" half-life wads
+		TYP_GFXPIC = 0x42,
+		TYP_MIPTEX = 0x43
 	};
 
 	~WadFile();
@@ -38,5 +40,6 @@ public:
 	std::vector<lumpinfo_t> lumps;
 
 	bool Load(const char *path);
-	bool GetLump(const char *name, std::vector<uint8_t> &data);
+	bool GetLump(int index, std::vector<uint8_t> &data);
+	bool FindLump(const char *name, std::vector<uint8_t> &data);
 };

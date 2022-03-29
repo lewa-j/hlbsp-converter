@@ -2,6 +2,9 @@
 #include "bsp-converter.h"
 #include "map.h"
 #include "gltf_export.h"
+#include "wad.h"
+#include "texture.h"
+#include <direct.h>
 
 #if _MSC_VER
 #include <Shlwapi.h>
@@ -103,7 +106,33 @@ int main(int argc, const char *argv[])
 	}
 
 	std::string mapPath;
-	if (strcasestr(argv[1], ".bsp") != nullptr)
+	if (strcasestr(argv[1], ".wad") != nullptr)
+	{
+		WadFile wad;
+		if (!wad.Load(argv[1]))
+			return -1;
+
+		_mkdir("textures");
+
+		std::vector<uint8_t> data;
+		Texture tex;
+		for (int i = 0; i < wad.lumps.size(); i++)
+		{
+			if (wad.lumps[i].type != WadFile::TYP_MIPTEX && wad.lumps[i].type != WadFile::TYP_GFXPIC)
+			{
+				printf("lump %d (%s) unknown type %d\n", i, wad.lumps[i].name, wad.lumps[i].type);
+				continue;
+			}
+			wad.GetLump(i, data);
+			if (wad.lumps[i].type == WadFile::TYP_GFXPIC)
+				tex.name = wad.lumps[i].name;
+			if (LoadMipTexture(&data[0], tex, wad.lumps[i].type))
+				tex.save((std::string("textures/") + tex.name + ".png").c_str());
+		}
+
+		return 0;
+	}
+	else if (strcasestr(argv[1], ".bsp") != nullptr)
 	{
 		mapPath = argv[1];
 	}
