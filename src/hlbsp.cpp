@@ -185,7 +185,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 					vert_t v{ bspVertices[vi] };
 					for (int k = 0; k < 2; k++)
 					{
-						v.uv[k] = (v.pos.x * ti.vecs[k][0] + v.pos.y * ti.vecs[k][1] + v.pos.z * ti.vecs[k][2]) + ti.vecs[k][3];
+						v.uv[k] = ((double)v.pos.x * (double)ti.vecs[k][0] + (double)v.pos.y * (double)ti.vecs[k][1] + (double)v.pos.z * (double)ti.vecs[k][2]) + ti.vecs[k][3];
 						min_uv[k] = fmin(min_uv[k], v.uv[k]);
 						max_uv[k] = fmax(max_uv[k], v.uv[k]);
 					}
