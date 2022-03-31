@@ -4,6 +4,7 @@
 #include "wad.h"
 #include <stdio.h>
 #include <map>
+#include "parser.h"
 
 bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 {
@@ -37,6 +38,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 	if (headerExtra.id != IDEXTRAHEADER || headerExtra.version != EXTRA_VERSION)
 		headerExtra.id = 0; // no extra header
 
+	std::vector<char> entitiesText;
 	std::vector<vec3_t> bspVertices;
 	std::vector<dmodel_t> bspModels;
 	std::vector<dfaceinfo_t> faceInfos;
@@ -55,6 +57,8 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 		fread(&to[0], lump.filelen, 1, f); \
 	}
 
+	READ_LUMP(entitiesText, header.lumps[LUMP_ENTITIES]);
+	entitiesText.push_back('\0');
 	READ_LUMP(bspVertices, header.lumps[LUMP_VERTEXES]);
 	READ_LUMP(bspModels, header.lumps[LUMP_MODELS]);
 	READ_LUMP(faces, header.lumps[LUMP_FACES]);
@@ -71,14 +75,29 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 
 	printf("Load %d models\n", (int)bspModels.size());
 
+	parseEntities(&entitiesText[0], entitiesText.size());
+
 	std::vector<WadFile> wads;
 	if (config->allTextures)
 	{
-		//Testing
-		wads.resize(3);
-		wads[0].Load((config->gamePath + "halflife.wad").c_str());
-		wads[1].Load((config->gamePath + "liquids.wad").c_str());
-		wads[2].Load((config->gamePath + "xeno.wad").c_str());
+		std::string basePath;
+		if (config->gamePath.size() && config->gamePath.rfind("valve") == std::string::npos)
+		{
+			basePath = config->gamePath.substr(0, config->gamePath.find_last_of('/\\', config->gamePath.size() - 2)) + "/valve/";
+		}
+		wads.resize(wadNames.size());
+		for (int i = 0; i < wadNames.size(); i++)
+		{
+			std::string wadPath = config->gamePath + wadNames[i];
+			struct stat statBuffer;
+			if(stat(wadPath.c_str(), &statBuffer))
+			{
+				wadPath = basePath + wadNames[i];
+				if (basePath.empty() || stat(wadPath.c_str(), &statBuffer))
+					continue;
+			}
+			wads[i].Load(wadPath.c_str());
+		}
 	}
 
 	hlbsp_loadTextures(f, header.lumps[LUMP_TEXTURES].fileofs, header.lumps[LUMP_TEXTURES].filelen, wads);
@@ -385,6 +404,78 @@ void Map::hlbsp_loadTextures(FILE *f, int fileofs, int filelen, std::vector<WadF
 		LoadMipTexture(&buffer[0], textures[i]);
 
 		printf("Loaded texture: %s \t%dx%d\n", textures[i].name.c_str(), textures[i].width, textures[i].height);
+	}
+}
+
+void Map::parseEntities(const char *src, size_t size)
+{
+	wadNames.clear();
+
+	bool isWorldSpawn = true;
+
+	Parser parser(src, size);
+	std::string token;
+
+	while (parser.getToken(token))
+	{
+		if (token != "{")
+		{
+			fprintf(stderr, "Error: parseEntities expected '{', got \"%s\"\n", token.c_str());
+			return;
+		}
+
+		while (true)
+		{
+			if (!parser.getToken(token))
+			{
+				fprintf(stderr, "Error: parseEntities unexpected end of file\n");
+				return;
+			}
+
+			if (token == "}")
+				break;
+
+			std::string keyname = token;
+
+			if (!parser.getToken(token))
+			{
+				fprintf(stderr, "Error: parseEntities unexpected end of file\n");
+				return;
+			}
+
+			if (token == "}")
+			{
+				fprintf(stderr, "Error: parseEntities unexpected '}' without data\n");
+				return;
+			}
+			//printf("%s = \"%s\"\n", keyname.c_str(), token.c_str());
+
+			if (isWorldSpawn && keyname == "wad")
+			{
+				size_t s = 0;
+				while(true)
+				{
+					size_t e = token.find(';', s);
+					if (e == std::string::npos)
+						e = token.size();
+
+					if (e - s > 0)
+					{
+						std::string temp = token.substr(s, e - s);
+						size_t p = temp.find_last_of("/\\");
+						if (p != std::string::npos)
+							temp = temp.substr(p + 1);
+						wadNames.push_back(temp);
+					}
+					else
+						break;
+					s = e + 1;
+				}
+			}
+		}
+		isWorldSpawn = false;
+		//TODO
+		return;
 	}
 }
 

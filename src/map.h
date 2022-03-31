@@ -74,4 +74,7 @@ private:
 	bool load_vbsp(FILE *f, const char *name, LoadConfig *config = nullptr);
 
 	void hlbsp_loadTextures(FILE *f, int fileofs, int filelen, std::vector<WadFile> wads);
+	void parseEntities(const char *src, size_t size);
+
+	std::vector<std::string> wadNames;
 };
