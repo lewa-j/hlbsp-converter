@@ -74,6 +74,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 #undef READ_LUMP
 
 	printf("Load %d models\n", (int)bspModels.size());
+	models.resize(bspModels.size());
 
 	parseEntities(&entitiesText[0], entitiesText.size());
 
@@ -138,7 +139,6 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 
 	int numedges = edges.size();
 	int indicesOffset = 0;
-	models.resize(bspModels.size());
 	for (int mi = 0; mi < bspModels.size(); mi++)
 	{
 		const auto &m = bspModels[mi];
@@ -436,6 +436,9 @@ void Map::parseEntities(const char *src, size_t size)
 			return;
 		}
 
+		std::string model;
+		std::string origin;
+
 		while (true)
 		{
 			if (!parser.getToken(token))
@@ -484,10 +487,26 @@ void Map::parseEntities(const char *src, size_t size)
 					s = e + 1;
 				}
 			}
+			else if (keyname == "model")
+			{
+				model = token;
+			}
+			else if (keyname == "origin")
+			{
+				origin = token;
+			}
 		}
 		isWorldSpawn = false;
-		//TODO
-		return;
+
+		if (model.size() && model[0] == '*' && origin.size())
+		{
+			vec3_t v;
+			int modelId = atoi(&model[1]);
+			if ((modelId > 0 && modelId < models.size()) && sscanf(origin.c_str(), "%f %f %f", &v.x, &v.y, &v.z) == 3)
+			{
+				models[modelId].position = v;
+			}
+		}
 	}
 }
 
