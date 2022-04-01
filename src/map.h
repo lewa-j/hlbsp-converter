@@ -46,13 +46,18 @@ public:
 		int count;
 		int material;
 	};
-	struct model_t
+	struct mesh_t
 	{
 		int offset;
 		int count;
 		int vertOffset;
 		int vertCount;
 		std::vector<submesh_t> submeshes;
+	};
+	struct model_t
+	{
+		std::vector<mesh_t> meshes;
+		vec3_t position = { 0,0,0 };
 	};
 	struct material_t
 	{
@@ -65,7 +70,7 @@ public:
 	std::vector<uint16_t> indices16;
 	std::vector<uint32_t> indices32;
 	// model can contain multiple meshes
-	std::vector<std::vector<model_t> > models;
+	std::vector<model_t> models;
 	std::vector<Texture> textures;
 	std::vector<material_t> materials;
 

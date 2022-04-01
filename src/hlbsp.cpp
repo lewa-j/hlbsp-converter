@@ -81,22 +81,34 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 	if (config->allTextures)
 	{
 		std::string basePath;
-		if (config->gamePath.size() && config->gamePath.rfind("valve") == std::string::npos)
+		if (config->gamePath.size() && config->gamePath.find("valve") == std::string::npos)
 		{
-			basePath = config->gamePath.substr(0, config->gamePath.find_last_of('/\\', config->gamePath.size() - 2)) + "/valve/";
+			size_t l = config->gamePath.find_last_of("/\\", config->gamePath.size() - 2);
+			if (l != std::string::npos)
+				basePath = config->gamePath.substr(0, l) + "/valve/";
 		}
 		wads.resize(wadNames.size());
 		for (int i = 0; i < wadNames.size(); i++)
 		{
 			std::string wadPath = config->gamePath + wadNames[i];
 			struct stat statBuffer;
-			if(stat(wadPath.c_str(), &statBuffer))
+			if (!stat(wadPath.c_str(), &statBuffer))
+			{
+				wads[i].Load(wadPath.c_str());
+				continue;
+			}
+
+			if (!basePath.empty())
 			{
 				wadPath = basePath + wadNames[i];
-				if (basePath.empty() || stat(wadPath.c_str(), &statBuffer))
+				if (!stat(wadPath.c_str(), &statBuffer))
+				{
+					wads[i].Load(wadPath.c_str());
 					continue;
+				}
 			}
-			wads[i].Load(wadPath.c_str());
+
+			printf("Warning: %s not found\n", wadNames[i].c_str());
 		}
 	}
 
@@ -142,12 +154,12 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 			materialFaces[ti.miptex].push_back(fi);
 		}
 
-		models[mi].push_back({});
-		model_t *model = &models[mi].back();
+		models[mi].meshes.push_back({});
+		mesh_t *mesh = &models[mi].meshes.back();
 
-		model->count = 0;
-		model->offset = indicesOffset;
-		model->vertOffset = vertices.size();
+		mesh->count = 0;
+		mesh->offset = indicesOffset;
+		mesh->vertOffset = vertices.size();
 		int indVertOffset = 0;
 		for (auto &mat : materialFaces)
 		{
@@ -163,20 +175,20 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 
 				if (config->uint16Inds && (indVertOffset + f.numedges >= UINT16_MAX - 1))
 				{
-					model->vertCount = vertices.size() - model->vertOffset;
+					mesh->vertCount = vertices.size() - mesh->vertOffset;
 					if (submesh.count)
 					{
 						indicesOffset += submesh.count;
-						model->count += submesh.count;
-						model->submeshes.push_back(submesh);
+						mesh->count += submesh.count;
+						mesh->submeshes.push_back(submesh);
 					}
 
-					models[mi].push_back({});
-					model = &models[mi].back();
+					models[mi].meshes.push_back({});
+					mesh = &models[mi].meshes.back();
 
-					model->count = 0;
-					model->offset = indicesOffset;
-					model->vertOffset = vertices.size();
+					mesh->count = 0;
+					mesh->offset = indicesOffset;
+					mesh->vertOffset = vertices.size();
 					indVertOffset = 0;
 
 					submesh.material = mat.first;
@@ -277,12 +289,12 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 				indVertOffset += f.numedges;
 			}
 			if (submesh.count)
-				model->submeshes.push_back(submesh);
+				mesh->submeshes.push_back(submesh);
 
-			model->count += submesh.count;
+			mesh->count += submesh.count;
 			indicesOffset += submesh.count;
 		}
-		model->vertCount = vertices.size() - model->vertOffset;
+		mesh->vertCount = vertices.size() - mesh->vertOffset;
 	}
 	lightmap.uploadBlock(name);
 
@@ -452,10 +464,10 @@ void Map::parseEntities(const char *src, size_t size)
 
 			if (isWorldSpawn && keyname == "wad")
 			{
-				size_t s = 0;
+				int s = 0;
 				while(true)
 				{
-					size_t e = token.find(';', s);
+					int e = token.find(';', s);
 					if (e == std::string::npos)
 						e = token.size();
 

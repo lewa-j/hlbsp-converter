@@ -39,15 +39,18 @@ bool ExportMap(const std::string &name, Map &map)
 		nodes[modelNodeId] = { {"name",std::string("*") + std::to_string(i)} };
 		nodes[0]["children"].push_back(modelNodeId);
 
-		if (map.models[i].size() == 1)
+		if (map.models[i].meshes.size() == 1)
 		{
 			nodes[modelNodeId]["mesh"] = meshId;
+			const vec3_t &p = map.models[i].position;
+			if (p.x != 0 && p.y != 0 && p.z != 0)
+				nodes[modelNodeId]["translation"] = { p.x, p.y, p.z };
 		}
 
-		for (int mmi = 0; mmi < map.models[i].size(); mmi++)
+		for (int mmi = 0; mmi < map.models[i].meshes.size(); mmi++)
 		{
 			meshes[meshId] = { {"primitives",json::array()} };
-			if (map.models[i].size() != 1)
+			if (map.models[i].meshes.size() != 1)
 			{
 				std::string meshName = name + "_mesh" + std::to_string(i) + "_" + std::to_string(mmi);
 				nodes[nodeId] = { {"name", meshName}, {"mesh", meshId} };
@@ -59,15 +62,15 @@ bool ExportMap(const std::string &name, Map &map)
 			{
 				meshes[meshId]["name"] = name + "_mesh" + std::to_string(i);
 			}
-			const Map::model_t &model = map.models[i][mmi];
+			const Map::mesh_t &part = map.models[i].meshes[mmi];
 
-			bufferViews[bufferViewId + 0] = { {"buffer", 0}, {"byteOffset", indsBufferOffset + model.offset * indSize}, {"byteLength", model.count * indSize}, {"target", ELEMENT_ARRAY_BUFFER} };
-			bufferViews[bufferViewId + 1] = { {"buffer", 0}, {"byteOffset", model.vertOffset * sizeof(map.vertices[0])}, {"byteLength", model.vertCount * sizeof(map.vertices[0])},{"byteStride", 28}, {"target", ARRAY_BUFFER} };
+			bufferViews[bufferViewId + 0] = { {"buffer", 0}, {"byteOffset", indsBufferOffset + part.offset * indSize}, {"byteLength", part.count * indSize}, {"target", ELEMENT_ARRAY_BUFFER} };
+			bufferViews[bufferViewId + 1] = { {"buffer", 0}, {"byteOffset", part.vertOffset * sizeof(map.vertices[0])}, {"byteLength", part.vertCount * sizeof(map.vertices[0])},{"byteStride", 28}, {"target", ARRAY_BUFFER} };
 			vec3_t bmin{ FLT_MAX, FLT_MAX, FLT_MAX };
 			vec3_t bmax{ -FLT_MAX, -FLT_MAX, -FLT_MAX };
-			for (int j = 0; j < model.vertCount; j++)
+			for (int j = 0; j < part.vertCount; j++)
 			{
-				vec3_t v = map.vertices[model.vertOffset + j].pos;
+				vec3_t v = map.vertices[part.vertOffset + j].pos;
 				bmin.x = fmin(bmin.x, v.x);
 				bmin.y = fmin(bmin.y, v.y);
 				bmin.z = fmin(bmin.z, v.z);
@@ -75,20 +78,20 @@ bool ExportMap(const std::string &name, Map &map)
 				bmax.y = fmax(bmax.y, v.y);
 				bmax.z = fmax(bmax.z, v.z);
 			}
-			accessors[accessorId + 0] = { {"bufferView",bufferViewId + 1},{"byteOffset",0},{"componentType",FLOAT},{"count",model.vertCount},{"type","VEC3"}, {"min",{bmin.x, bmin.y, bmin.z}}, {"max",{bmax.x, bmax.y, bmax.z}} };
-			accessors[accessorId + 1] = { {"bufferView",bufferViewId + 1},{"byteOffset",12},{"componentType",FLOAT},{"count",model.vertCount},{"type","VEC2"} };
-			accessors[accessorId + 2] = { {"bufferView",bufferViewId + 1},{"byteOffset",20},{"componentType",FLOAT},{"count",model.vertCount},{"type","VEC2"} };
+			accessors[accessorId + 0] = { {"bufferView",bufferViewId + 1},{"byteOffset",0},{"componentType",FLOAT},{"count",part.vertCount},{"type","VEC3"}, {"min",{bmin.x, bmin.y, bmin.z}}, {"max",{bmax.x, bmax.y, bmax.z}} };
+			accessors[accessorId + 1] = { {"bufferView",bufferViewId + 1},{"byteOffset",12},{"componentType",FLOAT},{"count",part.vertCount},{"type","VEC2"} };
+			accessors[accessorId + 2] = { {"bufferView",bufferViewId + 1},{"byteOffset",20},{"componentType",FLOAT},{"count",part.vertCount},{"type","VEC2"} };
 			modelAccessorId = accessorId;
 			accessorId += 3;
 
-			for (int j = 0; j < model.submeshes.size(); j++)
+			for (int j = 0; j < part.submeshes.size(); j++)
 			{
 				meshes[meshId]["primitives"][j] = {
 					{"attributes", {{"POSITION",modelAccessorId + 0}, {"TEXCOORD_0",modelAccessorId + 1}, {"TEXCOORD_1",modelAccessorId + 2}}},
 					{"indices", accessorId},
-					{"material", model.submeshes[j].material}
+					{"material", part.submeshes[j].material}
 				};
-				accessors[accessorId] = { {"bufferView", bufferViewId}, { "byteOffset", (model.submeshes[j].offset - model.offset) * indSize }, { "componentType", indType }, { "count", model.submeshes[j].count }, { "type","SCALAR" } };
+				accessors[accessorId] = { {"bufferView", bufferViewId}, { "byteOffset", (part.submeshes[j].offset - part.offset) * indSize }, { "componentType", indType }, { "count", part.submeshes[j].count }, { "type","SCALAR" } };
 				accessorId++;
 			}
 			meshId++;

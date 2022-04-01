@@ -83,10 +83,10 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 			materialFaces[ti.texData].push_back(fi);
 		}
 
-		models[mi].push_back({});
-		model_t &modOut = models[mi][0];
-		modOut.vertOffset = vertices.size();
-		modOut.offset = indOffset;
+		models[mi].meshes.push_back({});
+		mesh_t &mesh = models[mi].meshes[0];
+		mesh.vertOffset = vertices.size();
+		mesh.offset = indOffset;
 		int curV = 0;
 		for (auto &mat : materialFaces)
 		{
@@ -143,10 +143,10 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 				submesh.count += (f.edgesCount - 2) * 3;
 				indOffset += (f.edgesCount - 2) * 3;
 			}
-			modOut.count += submesh.count;
-			modOut.submeshes.push_back(submesh);
+			mesh.count += submesh.count;
+			mesh.submeshes.push_back(submesh);
 		}
-		modOut.vertCount = curV;
+		mesh.vertCount = curV;
 	}
 	lightmap.uploadBlock(name);
 
