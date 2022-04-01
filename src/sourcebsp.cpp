@@ -19,6 +19,7 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 		return false;
 	}
 
+	std::vector<char> entitiesText;
 	std::vector<bspTexData_t> texdatas;
 	std::vector<vec3_t> bspVertices;
 	std::vector<bspTexInfo_t> texinfos;
@@ -38,6 +39,7 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 		fread(&to[0], header.lumps[id].filelen, 1, f); \
 	}
 
+	READ_LUMP(entitiesText, LUMP_ENTITIES);
 	READ_LUMP(texdatas, LUMP_TEXDATA);
 	READ_LUMP(bspVertices, LUMP_VERTEXES);
 	READ_LUMP(texinfos, LUMP_TEXINFO);
@@ -52,17 +54,16 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 
 	fclose(f);
 
+	models.resize(bspModels.size());
+	parseEntities(&entitiesText[0], entitiesText.size());
+
 	materials.resize(texdatas.size());
 	for (int i = 0; i < texdatas.size(); i++)
 	{
 		materials[i].name = texDataStings.data() + texDataStingTable[texdatas[i].nameStringTableID];
 		for (auto &c : materials[i].name)
 			c = std::tolower(c);
-
-		materials[i].texture = textures.size();//lightmap
 	}
-
-	models.resize(bspModels.size());
 
 	Lightmap lightmap(config->lightmapSize, false, true);
 	lightmap.initBlock();
