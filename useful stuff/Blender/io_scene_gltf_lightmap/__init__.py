@@ -7,7 +7,7 @@ from io_scene_gltf2.blender.imp.gltf2_blender_pbrMetallicRoughness import Materi
 bl_info = {
 	"name": "glTF lightmap Importer Extension",
 	"category": "Import",
-	"version": (1, 0, 0),
+	"version": (1, 1, 0),
 	"blender": (3, 1, 0),
 	'location': 'File > Import > glTF 2.0',
 	'description': 'Addon to add a lightmap feature to an imported glTF file.',
@@ -44,9 +44,9 @@ class glTF2ImportUserExtension:
 		emission_socket = parent.inputs['Emission']
 		base_socket = parent.inputs['Base Color']
 
-		if len(base_socket.links)==0:
-			return
-		base_color_node = base_socket.links[0].from_socket.node
+		base_color_node = None
+		if len(base_socket.links)!=0:
+			base_color_node = base_socket.links[0].from_socket.node
 
 		#if len(emission_socket.links)==0:
 		#	return
@@ -59,7 +59,8 @@ class glTF2ImportUserExtension:
 		blender_mat.node_tree.links.new(emission_socket, node.outputs[0])
 		# Inputs
 		node.inputs['Fac'].default_value = 1.0
-		blender_mat.node_tree.links.new(node.inputs['Color1'], base_color_node.outputs[0])
+		if base_color_node is not None:
+			blender_mat.node_tree.links.new(node.inputs['Color1'], base_color_node.outputs[0])
 		#blender_mat.node_tree.links.new(node.inputs['Color2'], emission_node.outputs[0])
 		
 		mh = MaterialHelper(import_settings, gltf_material, blender_mat, vertex_color)
