@@ -7,15 +7,26 @@
 class Lightmap
 {
 public:
+	struct RectI
+	{
+		int x = 0;
+		int y = 0;
+		int w = 0;
+		int h = 0;
+	};
+
 	Lightmap(int size, bool vecs = false, bool rgbexp_ = false) : 
-		block_size(size), haveVecs(vecs), rgbexp(rgbexp_), allocated(block_size){}
+		block_width(size), block_height(size), haveVecs(vecs), rgbexp(rgbexp_){}
 	void initBlock();
-	bool allocBlock(int w, int h, int &x, int &y);
+	bool allocBlock(RectI &rectInOut);
 	void uploadBlock(const std::string &name);
 
-	void write(int w, int h, int x, int y, uint8_t *data, uint8_t *dataVecs = nullptr);
+	void write(const RectI &rect, uint8_t *data, uint8_t *dataVecs = nullptr);
 
-	int block_size = 1024;
+	bool pack(std::vector<RectI> &rects, int max_size);
+
+	int block_width = 1024;
+	int block_height = 1024;
 	bool haveVecs = false;
 	bool rgbexp = false;
 	std::vector<int> allocated;

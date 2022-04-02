@@ -125,34 +125,76 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 		materials[i].alphaMask = (textures[i].format == Texture::RGBA8);
 	}
 
-	//save lightmap packing info and reuse it for lightsyles export
-	struct surface_t
-	{
-		int offs[2];
-		int size[2];
-	};
-	std::vector<surface_t> surfaces(faces.size());
+	std::vector<Lightmap::RectI> lmRects(faces.size());
+	std::vector<vec2i_t> lmMins(faces.size());
 
 	Lightmap lightmap(config->lightmapSize, lightmapVecs.size() != 0);
 
-	lightmap.initBlock();
-
 	int numedges = edges.size();
-	int indicesOffset = 0;
+	std::vector<std::map<int, std::vector<int> > > modelMaterialFaces(bspModels.size());
 	for (int mi = 0; mi < bspModels.size(); mi++)
 	{
 		const auto &m = bspModels[mi];
 		// sort faces by texture and batch into a single mesh
-		std::map<int, std::vector<int> > materialFaces;
 
 		for (int fi = m.firstface; fi < m.firstface + m.numfaces; fi++)
 		{
 			const auto &f = faces[fi];
 			const auto &ti = texinfos[f.texinfo];
+			auto &rect = lmRects[fi];
+			rect = { 0,0,0,0 };
+
 			if (config->skipSky && textures[ti.miptex].name == "sky")
 				continue;
-			materialFaces[ti.miptex].push_back(fi);
+			modelMaterialFaces[mi][ti.miptex].push_back(fi);
+
+			// lightmap calculations
+			if (f.lightofs == -1 || f.styles[0] == 255)
+				continue;
+
+			int sampleSize = lmSampleSize;
+			if (ti.faceInfo >= 0 && ti.faceInfo < faceInfos.size())
+				sampleSize = faceInfos[ti.faceInfo].textureStep;
+
+			float min_uv[2]{ FLT_MAX, FLT_MAX };
+			float max_uv[2]{ -FLT_MAX, -FLT_MAX };
+			for (int j = 0; j < f.numedges; j++)
+			{
+				int e = surfedges[f.firstedge + j];
+				if (e >= numedges || e <= -numedges)
+				{
+					fprintf(stderr, "Error: model %d face %d bad edge %d\n", mi, fi, e);
+					return -1;
+				}
+				int vi = edges[abs(e)].v[(e > 0 ? 0 : 1)];
+				if (vi >= bspVertices.size()) {
+					fprintf(stderr, "Error: model %d face %d bad vertex index %d\n", mi, fi, vi);
+					return -1;
+				}
+				const vec3_t &v = bspVertices[vi];
+				for (int k = 0; k < 2; k++)
+				{
+					float uv = ((double)v.x * (double)ti.vecs[k][0] + (double)v.y * (double)ti.vecs[k][1] + (double)v.z * (double)ti.vecs[k][2]) + ti.vecs[k][3];
+					min_uv[k] = fmin(min_uv[k], uv);
+					max_uv[k] = fmax(max_uv[k], uv);
+				}
+			}
+
+			lmMins[fi] = { int(floor(min_uv[0] / sampleSize)), int(floor(min_uv[1] / sampleSize)) };
+			int bmaxs[2]{ ceil(max_uv[0] / sampleSize), ceil(max_uv[1] / sampleSize) };
+			rect.w = bmaxs[0] - lmMins[fi].x + 1;
+			rect.h = bmaxs[1] - lmMins[fi].y + 1;
 		}
+	}
+
+	lightmap.pack(lmRects, config->lightmapSize);
+
+	lightmap.initBlock();
+
+	int indicesOffset = 0;
+	for (int mi = 0; mi < bspModels.size(); mi++)
+	{
+		const auto &m = bspModels[mi];
 
 		models[mi].meshes.push_back({});
 		mesh_t *mesh = &models[mi].meshes.back();
@@ -161,7 +203,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 		mesh->offset = indicesOffset;
 		mesh->vertOffset = vertices.size();
 		int indVertOffset = 0;
-		for (auto &mat : materialFaces)
+		for (auto &mat : modelMaterialFaces[mi])
 		{
 			submesh_t submesh;
 			submesh.material = mat.first;
@@ -198,63 +240,33 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 
 				int faceVertOffset = vertices.size();
 
-				float min_uv[2]{ FLT_MAX, FLT_MAX };
-				float max_uv[2]{ -FLT_MAX, -FLT_MAX };
 				for (int j = 0; j < f.numedges; j++)
 				{
 					int e = surfedges[f.firstedge + j];
-					if (e >= numedges || e <= -numedges)
-					{
-						fprintf(stderr, "Error: model %d face %d bad edge %d\n", mi, mat.second[i], e);
-						return -1;
-					}
 					int vi = edges[abs(e)].v[(e > 0 ? 0 : 1)];
-					if (vi >= bspVertices.size()) {
-						fprintf(stderr, "Error: model %d face %d bad vertex index %d\n", mi, mat.second[i], vi);
-						return -1;
-					}
 					vert_t v{ bspVertices[vi] };
 					for (int k = 0; k < 2; k++)
 					{
 						v.uv[k] = ((double)v.pos.x * (double)ti.vecs[k][0] + (double)v.pos.y * (double)ti.vecs[k][1] + (double)v.pos.z * (double)ti.vecs[k][2]) + ti.vecs[k][3];
-						min_uv[k] = fmin(min_uv[k], v.uv[k]);
-						max_uv[k] = fmax(max_uv[k], v.uv[k]);
 					}
 					vertices.push_back(v);
 				}
 
-				auto &fl = surfaces[mat.second[i]];
-				fl = { 0,0,0,0 };
-
 				if (f.lightofs != -1 && f.styles[0] != 255)
 				{
+					auto &rect = lmRects[mat.second[i]];
 					int sampleSize = lmSampleSize;
 					if (ti.faceInfo >= 0 && ti.faceInfo < faceInfos.size())
-					{
 						sampleSize = faceInfos[ti.faceInfo].textureStep;
-					}
 
-					int bmins[2]{ floor(min_uv[0] / sampleSize), floor(min_uv[1] / sampleSize) };
-					int bmaxs[2]{ ceil(max_uv[0] / sampleSize), ceil(max_uv[1] / sampleSize) };
-					fl.size[0] = bmaxs[0] - bmins[0] + 1;
-					fl.size[1] = bmaxs[1] - bmins[1] + 1;
+					vec2i_t mins = lmMins[mat.second[i]];
 
-					if (!lightmap.allocBlock(fl.size[0], fl.size[1], fl.offs[0], fl.offs[1]))
-					{
-						printf("Warning: lightmap altas is full, creating additional atlas. Use '-lm' parameter if you want to fit all lighting into one atlas.\n");
-						lightmap.uploadBlock(name);
-						lightmap.initBlock();
-						lightmap.allocBlock(fl.size[0], fl.size[1], fl.offs[0], fl.offs[1]);
-					}
-
-					lightmap.write(fl.size[0], fl.size[1], fl.offs[0], fl.offs[1], &lightmapPixels[f.lightofs], lightmapVecs.size() ? &lightmapVecs[f.lightofs] : nullptr);
+					lightmap.write(rect, &lightmapPixels[f.lightofs], lightmapVecs.size() ? &lightmapVecs[f.lightofs] : nullptr);
 					for (int j = 0; j < f.numedges; j++)
 					{
 						vert_t &v = vertices[faceVertOffset + j];
-						for (int k = 0; k < 2; k++)
-						{
-							v.uv2[k] = (v.uv[k] - bmins[k] * sampleSize + fl.offs[k] * sampleSize + sampleSize * 0.5f) / (lightmap.block_size * sampleSize);
-						}
+						v.uv2[0] = (v.uv[0] - mins.x * sampleSize + rect.x * sampleSize + sampleSize * 0.5f) / (lightmap.block_width * sampleSize);
+						v.uv2[1] = (v.uv[1] - mins.y * sampleSize + rect.y * sampleSize + sampleSize * 0.5f) / (lightmap.block_height * sampleSize);
 					}
 				}
 
@@ -309,22 +321,23 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 				activeStyles++;
 				break;
 			}
-			if (activeStyles)
-				break;
 		}
+
+		if (activeStyles)
+			break;
 	}
 
 	if(activeStyles)
 	{
-		Texture lmap2(lightmap.block_size, lightmap.block_size, Texture::RGB8);
+		Texture lmap2(lightmap.block_width, lightmap.block_height, Texture::RGB8);
 
-		for (int i = 0; i < surfaces.size(); i++)
+		for (int i = 0; i < lmRects.size(); i++)
 		{
 			const dface_t &f = faces[i];
-			const surface_t &fl = surfaces[i];
-			if (fl.size[0] * fl.size[1] == 0)
+			const Lightmap::RectI &rect = lmRects[i];
+			if (rect.w * rect.h == 0)
 				continue;
-			std::vector<uint8_t> flmap(fl.size[0] * fl.size[1] * 3);
+			std::vector<uint8_t> flmap(rect.w * rect.h * 3);
 			memset(&flmap[0], 0, flmap.size());
 			int lmOffset = 0;
 			for (int s = 0; s < LM_STYLES && f.styles[s] != 255; s++)
@@ -337,16 +350,16 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 						flmap[l] = (val > 255) ? 255 : val;
 					}
 				}
-				lmOffset += fl.size[0] * fl.size[1] * 3;
+				lmOffset += rect.w * rect.h * 3;
 			}
 
 			const uint8_t *data = flmap.data();
-			uint8_t *dst = lmap2.get(fl.offs[0], fl.offs[1]);
-			for (int i = 0; i < fl.size[1]; i++)
+			uint8_t *dst = lmap2.get(rect.x, rect.y);
+			for (int i = 0; i < rect.h; i++)
 			{
-				memcpy(dst, data, fl.size[0] * 3);
+				memcpy(dst, data, rect.w * 3);
 				dst += lmap2.width * 3;
-				data += fl.size[0] * 3;
+				data += rect.w * 3;
 			}
 		}
 		if (config->lstylesAll)
@@ -354,6 +367,9 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 		else
 			lmap2.save((std::string(name) + "_style" + std::to_string(config->lstyle) + "_lightmap.png").c_str());
 	}
+
+	if (config->lstylesAll && !activeStyles)
+		printf("No lightstyles found\n");
 
 	return true;
 }

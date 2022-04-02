@@ -17,6 +17,11 @@ struct vec3_t
 	float x, y, z;
 };
 
+struct vec2i_t
+{
+	int x, y;
+};
+
 class WadFile;
 
 class Map
@@ -26,7 +31,7 @@ public:
 	{
 		std::string gamePath;
 		bool skipSky = false;
-		int lightmapSize = 1024;
+		int lightmapSize = 2048;
 		int lstyle = -1;
 		bool lstylesAll = false;
 		bool uint16Inds = false;

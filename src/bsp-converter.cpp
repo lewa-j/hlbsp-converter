@@ -17,7 +17,7 @@ int main(int argc, const char *argv[])
 	printf(HLBSP_CONVERTER_NAME "\n");
 	if (argc < 2 || !strcmp(argv[1], "-h"))
 	{
-		printf("Usage: bsp-converter map.bsp [-lm <lightmap atlas size>] [-lstyles <light style index>|all] [-skip_sky] [-uint16] [-tex]\n");
+		printf("Usage: bsp-converter map.bsp [-lm <max lightmap atlas size>] [-lstyles <light style index>|all] [-skip_sky] [-uint16] [-tex]\n");
 		return -1;
 	}
 
@@ -59,7 +59,7 @@ int main(int argc, const char *argv[])
 			}
 			else
 			{
-				printf("Warning: '-lm' parameter requires a number - lightmap atlas resolution\n");
+				printf("Warning: '-lm' parameter requires a number - maximum lightmap atlas resolution\n");
 			}
 		}
 		else if (!strcmp(argv[i], "-lstyle"))
@@ -98,7 +98,7 @@ int main(int argc, const char *argv[])
 		}
 	}
 	if (!config.lightmapSize)
-		config.lightmapSize = 1024;
+		config.lightmapSize = 2048;
 
 	if (config.gamePath.size() && config.gamePath.back() != '/' && config.gamePath.back() != '\\')
 	{
