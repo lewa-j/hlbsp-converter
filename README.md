@@ -4,10 +4,11 @@ A tool to convert bsp maps (Half-Life and other GoldSrc games) into glTF scenes.
 
 ## Key features:
 
-* Export embedded texture
+* Export embedded texture, and optionally from wads
 * Lightmaps!
 * Option to exclude sky polygons
 * BSP31 support (Xash3D)
+* Basic VBSP support (Source Engine)
 
 ## Usage
 
@@ -17,10 +18,12 @@ A tool to convert bsp maps (Half-Life and other GoldSrc games) into glTF scenes.
 
 ### Options
 
-* `-lm <number>` - set a lightmap atlas size
+* `-lm <number>` - set a maximum lightmap atlas size (default 2048). Actual size is calculated based on surfaces and can be smaller.
 * `-skip_sky` - exclude polygons with 'sky' texture from export 
 * `-lstyle <number>|all` - export lightmap with a specified lightstyle index or all lightyles in one.
 * `-uint16` - sets index buffer type to usigned short. Useful for old mobile GPU without GL_OES_element_index_uint. Will split models into smaller meshes if required.
+* `-tex` - export all textures, including loaded from wads.
+* `-game <path>` - directory containing wads
 
 ## Dependencies (already included)
 
