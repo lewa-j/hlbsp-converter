@@ -49,6 +49,10 @@ bool ExportMap(const std::string &name, Map &map)
 
 		for (int mmi = 0; mmi < map.models[i].meshes.size(); mmi++)
 		{
+			const Map::mesh_t &part = map.models[i].meshes[mmi];
+			if (part.vertCount == 0)
+				continue;
+
 			meshes[meshId] = { {"primitives",json::array()} };
 			if (map.models[i].meshes.size() != 1)
 			{
@@ -62,10 +66,9 @@ bool ExportMap(const std::string &name, Map &map)
 			{
 				meshes[meshId]["name"] = name + "_mesh" + std::to_string(i);
 			}
-			const Map::mesh_t &part = map.models[i].meshes[mmi];
 
 			bufferViews[bufferViewId + 0] = { {"buffer", 0}, {"byteOffset", indsBufferOffset + part.offset * indSize}, {"byteLength", part.count * indSize}, {"target", ELEMENT_ARRAY_BUFFER} };
-			bufferViews[bufferViewId + 1] = { {"buffer", 0}, {"byteOffset", part.vertOffset * sizeof(map.vertices[0])}, {"byteLength", part.vertCount * sizeof(map.vertices[0])},{"byteStride", 28}, {"target", ARRAY_BUFFER} };
+			bufferViews[bufferViewId + 1] = { {"buffer", 0}, {"byteOffset", part.vertOffset * sizeof(map.vertices[0])}, {"byteLength", part.vertCount * sizeof(map.vertices[0])},{"byteStride", sizeof(map.vertices[0])}, {"target", ARRAY_BUFFER} };
 			vec3_t bmin{ FLT_MAX, FLT_MAX, FLT_MAX };
 			vec3_t bmax{ -FLT_MAX, -FLT_MAX, -FLT_MAX };
 			for (int j = 0; j < part.vertCount; j++)
@@ -79,15 +82,16 @@ bool ExportMap(const std::string &name, Map &map)
 				bmax.z = fmax(bmax.z, v.z);
 			}
 			accessors[accessorId + 0] = { {"bufferView",bufferViewId + 1},{"byteOffset",0},{"componentType",FLOAT},{"count",part.vertCount},{"type","VEC3"}, {"min",{bmin.x, bmin.y, bmin.z}}, {"max",{bmax.x, bmax.y, bmax.z}} };
-			accessors[accessorId + 1] = { {"bufferView",bufferViewId + 1},{"byteOffset",12},{"componentType",FLOAT},{"count",part.vertCount},{"type","VEC2"} };
-			accessors[accessorId + 2] = { {"bufferView",bufferViewId + 1},{"byteOffset",20},{"componentType",FLOAT},{"count",part.vertCount},{"type","VEC2"} };
+			accessors[accessorId + 1] = { {"bufferView",bufferViewId + 1},{"byteOffset",12},{"componentType",FLOAT},{"count",part.vertCount},{"type","VEC3"} };
+			accessors[accessorId + 2] = { {"bufferView",bufferViewId + 1},{"byteOffset",24},{"componentType",FLOAT},{"count",part.vertCount},{"type","VEC2"} };
+			accessors[accessorId + 3] = { {"bufferView",bufferViewId + 1},{"byteOffset",32},{"componentType",FLOAT},{"count",part.vertCount},{"type","VEC2"} };
 			modelAccessorId = accessorId;
-			accessorId += 3;
+			accessorId += 4;
 
 			for (int j = 0; j < part.submeshes.size(); j++)
 			{
 				meshes[meshId]["primitives"][j] = {
-					{"attributes", {{"POSITION",modelAccessorId + 0}, {"TEXCOORD_0",modelAccessorId + 1}, {"TEXCOORD_1",modelAccessorId + 2}}},
+					{"attributes", {{"POSITION",modelAccessorId + 0}, {"NORMAL",modelAccessorId + 1}, {"TEXCOORD_0",modelAccessorId + 2}, {"TEXCOORD_1",modelAccessorId + 3}}},
 					{"indices", accessorId},
 					{"material", part.submeshes[j].material}
 				};
@@ -124,14 +128,12 @@ bool ExportMap(const std::string &name, Map &map)
 		if (mat.alphaMask)
 			materials[i]["alphaMode"] = "MASK";
 
+		materials[i]["pbrMetallicRoughness"] = {
+			{"metallicFactor", 0}
+		};
 		if (mat.texture != -1)
 		{
-			materials[i]["pbrMetallicRoughness"] = {
-				{"baseColorTexture",{{"index", mat.texture}}},
-				{"metallicFactor", 0}
-			};
-			if (mat.texture == lmapTexIndex)
-				materials[i]["pbrMetallicRoughness"]["baseColorTexture"]["texCoord"] = 1;
+			materials[i]["pbrMetallicRoughness"]["baseColorTexture"] = { {"index", mat.texture} };
 		}
 		materials[i]["extensions"] = { {"EXT_materials_lightmap",{{"lightmapTexture", { {"index", lmapTexIndex}, {"texCoord", 1} }}}} };
 	}

@@ -130,6 +130,13 @@ struct dtexinfo_t
 	int16_t	faceInfo;		// xash extension
 };
 
+struct dplane_t
+{
+	vec3_t	normal;
+	float	dist;
+	int32_t	type;
+};
+
 struct dfaceinfo_t
 {
 	char		landname[16];	// name of description in mapname_land.txt

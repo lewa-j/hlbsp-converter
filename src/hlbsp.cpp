@@ -39,6 +39,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 		headerExtra.id = 0; // no extra header
 
 	std::vector<char> entitiesText;
+	std::vector<dplane_t> planes;
 	std::vector<vec3_t> bspVertices;
 	std::vector<dmodel_t> bspModels;
 	std::vector<dfaceinfo_t> faceInfos;
@@ -59,6 +60,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 
 	READ_LUMP(entitiesText, header.lumps[LUMP_ENTITIES]);
 	entitiesText.push_back('\0');
+	READ_LUMP(planes, header.lumps[LUMP_PLANES]);
 	READ_LUMP(bspVertices, header.lumps[LUMP_VERTEXES]);
 	READ_LUMP(bspModels, header.lumps[LUMP_MODELS]);
 	READ_LUMP(faces, header.lumps[LUMP_FACES]);
@@ -214,6 +216,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 			{
 				const auto &f = faces[mat.second[i]];
 				const auto &ti = texinfos[f.texinfo];
+				const auto &plane = planes[f.planenum];
 
 				if (config->uint16Inds && (indVertOffset + f.numedges >= UINT16_MAX - 1))
 				{
@@ -244,7 +247,13 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 				{
 					int e = surfedges[f.firstedge + j];
 					int vi = edges[abs(e)].v[(e > 0 ? 0 : 1)];
-					vert_t v{ bspVertices[vi] };
+					vert_t v{ bspVertices[vi], plane.normal };
+					if (f.side)
+					{
+						v.norm.x = -v.norm.x;
+						v.norm.y = -v.norm.y;
+						v.norm.z = -v.norm.z;
+					}
 					for (int k = 0; k < 2; k++)
 					{
 						v.uv[k] = ((double)v.pos.x * (double)ti.vecs[k][0] + (double)v.pos.y * (double)ti.vecs[k][1] + (double)v.pos.z * (double)ti.vecs[k][2]) + ti.vecs[k][3];

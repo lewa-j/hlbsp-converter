@@ -28,6 +28,8 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 	std::vector<uint16_t> edges;
 	std::vector<int32_t> surfedges;
 	std::vector<bspModel_t> bspModels;
+	std::vector<vec3_t> normals;
+	std::vector<uint16_t> normalInds;
 	std::vector<char> texDataStings;
 	std::vector<int> texDataStingTable;
 
@@ -48,6 +50,8 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 	READ_LUMP(edges, LUMP_EDGES);
 	READ_LUMP(surfedges, LUMP_SURFEDGES);
 	READ_LUMP(bspModels, LUMP_MODELS);
+	READ_LUMP(normals, LUMP_VERTNORMALS);
+	READ_LUMP(normalInds, LUMP_VERTNORMALINDICES);
 	READ_LUMP(texDataStings, LUMP_TEXDATA_STRING_DATA);
 	READ_LUMP(texDataStingTable, LUMP_TEXDATA_STRING_TABLE);
 #undef READ_LUMP
@@ -66,9 +70,11 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 	}
 
 	std::vector<Lightmap::RectI> lmRects(faces.size());
+	std::vector<int> normalOffsets(faces.size());
 
 	Lightmap lightmap(config->lightmapSize, false, true);
 
+	int normalOffset = 0;
 	for (int mi = 0; mi < bspModels.size(); mi++)
 	{
 		const bspModel_t &modIn = bspModels[mi];
@@ -77,6 +83,9 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 		{
 			const bspFace_t &f = faces[fi];
 			const bspTexInfo_t &ti = texinfos[f.texInfo];
+			normalOffsets[fi] = normalOffset;
+			normalOffset += f.edgesCount;
+
 			lmRects[fi] = { 0,0,0,0 };
 			if (config->skipSky && (ti.flags & SURF_SKY))
 				continue;
@@ -139,6 +148,7 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 
 					vert_t vert{};
 					vert.pos = bspVertices[v];
+					vert.norm = normals[normalInds[normalOffsets[mat.second[i]] + ei]];
 					vert.uv[0] = ((vert.pos.x * ti.textureVecS.x + vert.pos.y * ti.textureVecS.y + vert.pos.z * ti.textureVecS.z) + ti.textureOffS) / td.width;
 					vert.uv[1] = ((vert.pos.x * ti.textureVecT.x + vert.pos.y * ti.textureVecT.y + vert.pos.z * ti.textureVecT.z) + ti.textureOffT) / td.height;
 					if (f.lightOfs != -1) {

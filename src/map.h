@@ -42,6 +42,7 @@ public:
 	struct vert_t
 	{
 		vec3_t pos;
+		vec3_t norm;
 		float uv[2];
 		float uv2[2];
 	};
