@@ -9,11 +9,22 @@ A tool to convert bsp maps (Half-Life and other GoldSrc games) into glTF scenes.
 * Option to exclude sky polygons
 * BSP31 support (Xash3D)
 * Basic VBSP support (Source Engine)
+* Extract all textures from wad as pngs
 
 ## Usage
 
+To export map
 ```sh
-./bsp-converter map-name.bsp [options]
+./bsp-converter <path/to/map.bsp> [options]
+```
+or
+```sh
+./bsp-converter <map-name> -game <path/to/game/dir/> [options]
+```
+
+To extract textures from wad
+```sh
+./bsp-converter path/to/file.bsp
 ```
 
 ### Options
@@ -23,7 +34,13 @@ A tool to convert bsp maps (Half-Life and other GoldSrc games) into glTF scenes.
 * `-lstyle <number>|all` - export lightmap with a specified lightstyle index or all lightyles in one.
 * `-uint16` - sets index buffer type to usigned short. Useful for old mobile GPU without GL_OES_element_index_uint. Will split models into smaller meshes if required.
 * `-tex` - export all textures, including loaded from wads.
-* `-game <path>` - directory containing wads
+* `-game <path>` - directory containing "maps" dir and .wad files
+
+## Extras
+
+Project also contains:
+* plugin for [Blender](https://www.blender.org/) automating lightmap materials setup.
+* Some shaders for Unity to add custom lightmaps
 
 ## Dependencies (already included)
 
