@@ -124,7 +124,8 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 	{
 		materials[i].name = textures[i].name;
 		materials[i].texture = i;
-		materials[i].alphaMask = (textures[i].format == Texture::RGBA8);
+		materials[i].alphaMask = (textures[i].name.find('{') != std::string::npos);
+		materials[i].lightmapped = true;
 	}
 
 	std::vector<Lightmap::RectI> lmRects(faces.size());

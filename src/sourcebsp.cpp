@@ -45,8 +45,16 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 	READ_LUMP(texdatas, LUMP_TEXDATA);
 	READ_LUMP(bspVertices, LUMP_VERTEXES);
 	READ_LUMP(texinfos, LUMP_TEXINFO);
-	READ_LUMP(faces, LUMP_FACES);
-	READ_LUMP(lightmapPixels, LUMP_LIGHTING);
+	if (header.lumps[LUMP_LIGHTING].filelen || !header.lumps[LUMP_LIGHTING_HDR].filelen)
+	{
+		READ_LUMP(faces, LUMP_FACES);
+		READ_LUMP(lightmapPixels, LUMP_LIGHTING);
+	}
+	else
+	{
+		READ_LUMP(faces, LUMP_FACES_HDR);
+		READ_LUMP(lightmapPixels, LUMP_LIGHTING_HDR);
+	}
 	READ_LUMP(edges, LUMP_EDGES);
 	READ_LUMP(surfedges, LUMP_SURFEDGES);
 	READ_LUMP(bspModels, LUMP_MODELS);
@@ -67,6 +75,7 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 		materials[i].name = texDataStings.data() + texDataStingTable[texdatas[i].nameStringTableID];
 		for (auto &c : materials[i].name)
 			c = std::tolower(c);
+		materials[i].lightmapped = (lightmapPixels.size() != 0);
 	}
 
 	std::vector<Lightmap::RectI> lmRects(faces.size());
@@ -98,9 +107,11 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 		}
 	}
 
-	lightmap.pack(lmRects, config->lightmapSize);
-
-	lightmap.initBlock();
+	if (lightmapPixels.size())
+	{
+		lightmap.pack(lmRects, config->lightmapSize);
+		lightmap.initBlock();
+	}
 
 	int indOffset = 0;
 	for (int mi = 0; mi < bspModels.size(); mi++)
@@ -136,7 +147,7 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 				const bspTexData_t &td = texdatas[ti.texData];
 				Lightmap::RectI &rect = lmRects[mat.second[i]];
 
-				if (f.lightOfs != -1)
+				if (f.lightOfs != -1 && lightmapPixels.size())
 				{
 					lightmap.write(rect, &lightmapPixels[f.lightOfs]);
 				}
@@ -173,7 +184,9 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 		}
 		mesh.vertCount = curV;
 	}
-	lightmap.uploadBlock(name);
+
+	if(lightmapPixels.size())
+		lightmap.uploadBlock(name);
 
 	return true;
 }

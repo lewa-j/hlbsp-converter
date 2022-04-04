@@ -135,7 +135,8 @@ bool ExportMap(const std::string &name, Map &map)
 		{
 			materials[i]["pbrMetallicRoughness"]["baseColorTexture"] = { {"index", mat.texture} };
 		}
-		materials[i]["extensions"] = { {"EXT_materials_lightmap",{{"lightmapTexture", { {"index", lmapTexIndex}, {"texCoord", 1} }}}} };
+		if (mat.lightmapped)
+			materials[i]["extensions"] = { {"EXT_materials_lightmap",{{"lightmapTexture", { {"index", lmapTexIndex}, {"texCoord", 1} }}}} };
 	}
 
 	images[lmapTexIndex] = { {"uri", name + "_lightmap0.png"} };
