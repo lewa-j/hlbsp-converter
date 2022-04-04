@@ -117,6 +117,7 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 	for (int mi = 0; mi < bspModels.size(); mi++)
 	{
 		const bspModel_t &modIn = bspModels[mi];
+		bool hasDisp = false;
 
 		std::map<int, std::vector<int> > materialFaces;
 
@@ -152,6 +153,12 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 					lightmap.write(rect, &lightmapPixels[f.lightOfs]);
 				}
 
+				if (f.dispInfo != -1)
+				{
+					hasDisp = true;
+					continue;
+				}
+
 				for (int ei = 0; ei < f.edgesCount; ei++)
 				{
 					int se = surfedges[f.firstEdge + ei];
@@ -179,10 +186,73 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 				submesh.count += (f.edgesCount - 2) * 3;
 				indOffset += (f.edgesCount - 2) * 3;
 			}
-			mesh.count += submesh.count;
-			mesh.submeshes.push_back(submesh);
+			if (submesh.count)
+			{
+				mesh.count += submesh.count;
+				mesh.submeshes.push_back(submesh);
+			}
 		}
 		mesh.vertCount = curV;
+
+		if (!hasDisp)
+			continue;
+
+		models[mi].dispMeshes.push_back({});
+		mesh_t &dmesh = models[mi].dispMeshes[0];
+		dmesh.vertOffset = dispVertices.size();
+		dmesh.offset = indOffset;
+		curV = 0;
+		for (auto &mat : materialFaces)
+		{
+			submesh_t submesh{ 0 };
+			submesh.material = mat.first;
+			submesh.offset = indOffset;
+
+			for (int i = 0; i < mat.second.size(); i++)
+			{
+				const bspFace_t &f = faces[mat.second[i]];
+				const bspTexInfo_t &ti = texinfos[f.texInfo];
+				const bspTexData_t &td = texdatas[ti.texData];
+				const Lightmap::RectI &rect = lmRects[mat.second[i]];
+
+				if (f.dispInfo == -1)
+					continue;
+
+				for (int ei = 0; ei < f.edgesCount; ei++)
+				{
+					int se = surfedges[f.firstEdge + ei];
+					int v = edges[abs(se) * 2 + (se > 0 ? 0 : 1)];
+
+					dispVert_t vert{};
+					vert.pos = bspVertices[v];
+					vert.norm = normals[normalInds[normalOffsets[mat.second[i]] + ei]];
+					vert.uv[0] = ((vert.pos.x * ti.textureVecS.x + vert.pos.y * ti.textureVecS.y + vert.pos.z * ti.textureVecS.z) + ti.textureOffS) / td.width;
+					vert.uv[1] = ((vert.pos.x * ti.textureVecT.x + vert.pos.y * ti.textureVecT.y + vert.pos.z * ti.textureVecT.z) + ti.textureOffT) / td.height;
+					if (f.lightOfs != -1) {
+						vert.uv2[0] = ((vert.pos.x * ti.lightmapVecS.x + vert.pos.y * ti.lightmapVecS.y + vert.pos.z * ti.lightmapVecS.z) + ti.lightmapOffS + 0.5f - f.lightmapMins[0] + rect.x) / lightmap.block_width;
+						vert.uv2[1] = ((vert.pos.x * ti.lightmapVecT.x + vert.pos.y * ti.lightmapVecT.y + vert.pos.z * ti.lightmapVecT.z) + ti.lightmapOffT + 0.5f - f.lightmapMins[1] + rect.y) / lightmap.block_height;
+					}
+					vert.alpha = 0.5;
+					dispVertices.push_back(vert);
+				}
+
+				for (int ei = 0; ei < f.edgesCount - 2; ei++)
+				{
+					indices32.push_back(curV);
+					indices32.push_back(curV + ei + 2);
+					indices32.push_back(curV + ei + 1);
+				}
+				curV += f.edgesCount;
+				submesh.count += (f.edgesCount - 2) * 3;
+				indOffset += (f.edgesCount - 2) * 3;
+			}
+			if (submesh.count)
+			{
+				dmesh.count += submesh.count;
+				dmesh.submeshes.push_back(submesh);
+			}
+		}
+		dmesh.vertCount = curV;
 	}
 
 	if(lightmapPixels.size())

@@ -46,6 +46,14 @@ public:
 		float uv[2];
 		float uv2[2];
 	};
+	struct dispVert_t
+	{
+		vec3_t pos;
+		vec3_t norm;
+		float uv[2];
+		float uv2[2];
+		float alpha;
+	};
 	struct submesh_t
 	{
 		int offset;
@@ -63,6 +71,7 @@ public:
 	struct model_t
 	{
 		std::vector<mesh_t> meshes;
+		std::vector<mesh_t> dispMeshes;
 		vec3_t position = { 0,0,0 };
 	};
 	struct material_t
@@ -74,6 +83,7 @@ public:
 	};
 
 	std::vector<vert_t> vertices;
+	std::vector<dispVert_t> dispVertices;
 	std::vector<uint16_t> indices16;
 	std::vector<uint32_t> indices32;
 	// model can contain multiple meshes

@@ -29,9 +29,12 @@ bool ExportMap(const std::string &name, Map &map)
 	int bufferViewId = 0;
 	int meshId = 0;
 	int nodeId = 1;
-	const int indsBufferOffset = map.vertices.size() * sizeof(map.vertices[0]);
+	const int vertBufferOffset = 0;
+	const int dispVertBufferOffset = map.vertices.size() * sizeof(map.vertices[0]);
+	const int indsBufferOffset = dispVertBufferOffset + map.dispVertices.size() * sizeof(map.dispVertices[0]);
 	const int indSize = map.indices16.size() ? sizeof(uint16_t) : sizeof(uint32_t);
 	const int indType = map.indices16.size() ? UNSIGNED_SHORT : UNSIGNED_INT;
+
 	for (int i = 0; i < map.models.size(); i++)
 	{
 		int modelNodeId = nodeId;
@@ -39,7 +42,9 @@ bool ExportMap(const std::string &name, Map &map)
 		nodes[modelNodeId] = { {"name",std::string("*") + std::to_string(i)} };
 		nodes[0]["children"].push_back(modelNodeId);
 
-		if (map.models[i].meshes.size() == 1)
+		bool singleMesh = (map.models[i].meshes.size() + map.models[i].dispMeshes.size() == 1);
+
+		if (singleMesh)
 		{
 			nodes[modelNodeId]["mesh"] = meshId;
 			const vec3_t &p = map.models[i].position;
@@ -47,33 +52,15 @@ bool ExportMap(const std::string &name, Map &map)
 				nodes[modelNodeId]["translation"] = { p.x, p.y, p.z };
 		}
 
-		for (int mmi = 0; mmi < map.models[i].meshes.size(); mmi++)
+		auto writeMesh = [&](json &mesh, const Map::mesh_t &part, int vertsOffset, int vertSize)
 		{
-			const Map::mesh_t &part = map.models[i].meshes[mmi];
-			if (part.vertCount == 0)
-				continue;
-
-			meshes[meshId] = { {"primitives",json::array()} };
-			if (map.models[i].meshes.size() != 1)
-			{
-				std::string meshName = name + "_mesh" + std::to_string(i) + "_" + std::to_string(mmi);
-				nodes[nodeId] = { {"name", meshName}, {"mesh", meshId} };
-				nodes[modelNodeId]["children"].push_back(nodeId);
-				nodeId++;
-				meshes[meshId]["name"] = meshName;
-			}
-			else
-			{
-				meshes[meshId]["name"] = name + "_mesh" + std::to_string(i);
-			}
-
 			bufferViews[bufferViewId + 0] = { {"buffer", 0}, {"byteOffset", indsBufferOffset + part.offset * indSize}, {"byteLength", part.count * indSize}, {"target", ELEMENT_ARRAY_BUFFER} };
-			bufferViews[bufferViewId + 1] = { {"buffer", 0}, {"byteOffset", part.vertOffset * sizeof(map.vertices[0])}, {"byteLength", part.vertCount * sizeof(map.vertices[0])},{"byteStride", sizeof(map.vertices[0])}, {"target", ARRAY_BUFFER} };
+			bufferViews[bufferViewId + 1] = { {"buffer", 0}, {"byteOffset", vertsOffset + part.vertOffset * vertSize}, {"byteLength", part.vertCount * vertSize},{"byteStride", vertSize}, {"target", ARRAY_BUFFER} };
 			vec3_t bmin{ FLT_MAX, FLT_MAX, FLT_MAX };
 			vec3_t bmax{ -FLT_MAX, -FLT_MAX, -FLT_MAX };
 			for (int j = 0; j < part.vertCount; j++)
 			{
-				vec3_t v = map.vertices[part.vertOffset + j].pos;
+				vec3_t v = (vertsOffset == 0) ? map.vertices[part.vertOffset + j].pos : map.dispVertices[part.vertOffset + j].pos;
 				bmin.x = fmin(bmin.x, v.x);
 				bmin.y = fmin(bmin.y, v.y);
 				bmin.z = fmin(bmin.z, v.z);
@@ -90,7 +77,7 @@ bool ExportMap(const std::string &name, Map &map)
 
 			for (int j = 0; j < part.submeshes.size(); j++)
 			{
-				meshes[meshId]["primitives"][j] = {
+				mesh["primitives"][j] = {
 					{"attributes", {{"POSITION",modelAccessorId + 0}, {"NORMAL",modelAccessorId + 1}, {"TEXCOORD_0",modelAccessorId + 2}, {"TEXCOORD_1",modelAccessorId + 3}}},
 					{"indices", accessorId},
 					{"material", part.submeshes[j].material}
@@ -98,8 +85,55 @@ bool ExportMap(const std::string &name, Map &map)
 				accessors[accessorId] = { {"bufferView", bufferViewId}, { "byteOffset", (part.submeshes[j].offset - part.offset) * indSize }, { "componentType", indType }, { "count", part.submeshes[j].count }, { "type","SCALAR" } };
 				accessorId++;
 			}
-			meshId++;
 			bufferViewId += 2;
+		};
+
+		for (int mmi = 0; mmi < map.models[i].meshes.size(); mmi++)
+		{
+			const Map::mesh_t &part = map.models[i].meshes[mmi];
+			if (part.vertCount == 0)
+				continue;
+
+			meshes[meshId] = { {"primitives",json::array()} };
+			if (!singleMesh)
+			{
+				std::string meshName = name + "_mesh" + std::to_string(i) + "_" + std::to_string(mmi);
+				nodes[nodeId] = { {"name", meshName}, {"mesh", meshId} };
+				nodes[modelNodeId]["children"].push_back(nodeId);
+				nodeId++;
+				meshes[meshId]["name"] = meshName;
+			}
+			else
+			{
+				meshes[meshId]["name"] = name + "_mesh" + std::to_string(i);
+			}
+
+			writeMesh(meshes[meshId], part, vertBufferOffset, sizeof(map.vertices[0]));
+			meshId++;
+		}
+
+		for (int dmi = 0; dmi < map.models[i].dispMeshes.size(); dmi++)
+		{
+			const Map::mesh_t &part = map.models[i].dispMeshes[dmi];
+			if (part.vertCount == 0)
+				continue;
+
+			meshes[meshId] = { {"primitives",json::array()} };
+			if (!singleMesh)
+			{
+				std::string meshName = name + "_dispMesh" + std::to_string(i) + "_" + std::to_string(dmi);
+				nodes[nodeId] = { {"name", meshName}, {"mesh", meshId} };
+				nodes[modelNodeId]["children"].push_back(nodeId);
+				nodeId++;
+				meshes[meshId]["name"] = meshName;
+			}
+			else
+			{
+				meshes[meshId]["name"] = name + "_dispMesh" + std::to_string(i);
+			}
+
+			writeMesh(meshes[meshId], part, dispVertBufferOffset, sizeof(map.dispVertices[0]));
+			meshId++;
 		}
 	}
 
@@ -142,14 +176,19 @@ bool ExportMap(const std::string &name, Map &map)
 	images[lmapTexIndex] = { {"uri", name + "_lightmap0.png"} };
 	textures[lmapTexIndex] = { {"source", lmapTexIndex} };
 
-	int vertsLen = map.vertices.size() * sizeof(map.vertices[0]);
+	int vertsLen = map.vertices.size() * sizeof(map.vertices[0]) + map.dispVertices.size() * sizeof(map.dispVertices[0]);
 	int indsLen = 0;
 
 	std::string bufferName = name + ".bin";
 
 	printf("Writing: %s\n", bufferName.c_str());
 	std::ofstream bufferFile(bufferName, std::ios_base::binary);
-	bufferFile.write((char *)&map.vertices[0], vertsLen);
+	if(map.vertices.size())
+		bufferFile.write((char *)&map.vertices[0], map.vertices.size() * sizeof(map.vertices[0]));
+
+	if(map.dispVertices.size())
+		bufferFile.write((char *)&map.dispVertices[0], map.dispVertices.size() * sizeof(map.dispVertices[0]));
+
 	if (map.indices16.size())
 	{
 		indsLen = map.indices16.size() * sizeof(map.indices16[0]);
