@@ -152,7 +152,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 			auto &rect = lmRects[fi];
 			rect = { 0,0,0,0 };
 
-			if (config->skipSky && textures[ti.miptex].name == "sky")
+			if (config->skipSky && !strnicmp(textures[ti.miptex].name.data(), "sky", textures[ti.miptex].name.size()))
 				continue;
 			modelMaterialFaces[mi][ti.miptex].push_back(fi);
 
