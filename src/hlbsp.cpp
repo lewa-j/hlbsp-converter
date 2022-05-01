@@ -119,6 +119,11 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 
 	fclose(f);
 
+	if (lightmapPixels.empty())
+	{
+		printf("Map without lightmaps\n");
+	}
+
 	materials.resize(textures.size());
 	for (int i = 0; i < materials.size(); i++)
 	{
@@ -152,7 +157,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 			modelMaterialFaces[mi][ti.miptex].push_back(fi);
 
 			// lightmap calculations
-			if (f.lightofs == -1 || f.styles[0] == 255)
+			if (lightmapPixels.empty() || f.lightofs == -1 || f.styles[0] == 255)
 				continue;
 
 			int sampleSize = lmSampleSize;
@@ -190,9 +195,12 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 		}
 	}
 
-	lightmap.pack(lmRects, config->lightmapSize);
+	if (lightmapPixels.size())
+	{
+		lightmap.pack(lmRects, config->lightmapSize);
 
-	lightmap.initBlock();
+		lightmap.initBlock();
+	}
 
 	int indicesOffset = 0;
 	for (int mi = 0; mi < bspModels.size(); mi++)
@@ -262,7 +270,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 					vertices.push_back(v);
 				}
 
-				if (f.lightofs != -1 && f.styles[0] != 255)
+				if (lightmapPixels.size() && f.lightofs != -1 && f.styles[0] == 0)
 				{
 					auto &rect = lmRects[mat.second[i]];
 					int sampleSize = lmSampleSize;
@@ -318,68 +326,72 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 		}
 		mesh->vertCount = vertices.size() - mesh->vertOffset;
 	}
-	lightmap.uploadBlock(name);
 
-	int activeStyles = 0;
-	for (int i = 0; i < faces.size(); i++)
+	if (lightmapPixels.size())
 	{
-		const dface_t &f = faces[i];
-		for (int j = 0; j < LM_STYLES; j++)
+		lightmap.uploadBlock(name);
+
+		int activeStyles = 0;
+		for (int i = 0; i < faces.size(); i++)
 		{
-			if (f.styles[j] != 0 && f.styles[j] != 255 && (config->lstylesAll || f.styles[j] == config->lstyle))
+			const dface_t &f = faces[i];
+			for (int j = 0; j < LM_STYLES; j++)
 			{
-				activeStyles++;
-				break;
+				if (f.styles[j] != 0 && f.styles[j] != 255 && (config->lstylesAll || f.styles[j] == config->lstyle))
+				{
+					activeStyles++;
+					break;
+				}
 			}
+
+			if (activeStyles)
+				break;
 		}
 
 		if (activeStyles)
-			break;
-	}
-
-	if(activeStyles)
-	{
-		Texture lmap2(lightmap.block_width, lightmap.block_height, Texture::RGB8);
-
-		for (int i = 0; i < lmRects.size(); i++)
 		{
-			const dface_t &f = faces[i];
-			const Lightmap::RectI &rect = lmRects[i];
-			if (rect.w * rect.h == 0)
-				continue;
-			std::vector<uint8_t> flmap(rect.w * rect.h * 3);
-			memset(&flmap[0], 0, flmap.size());
-			int lmOffset = 0;
-			for (int s = 0; s < LM_STYLES && f.styles[s] != 255; s++)
+			Texture lmap2(lightmap.block_width, lightmap.block_height, Texture::RGB8);
+
+			for (int i = 0; i < lmRects.size(); i++)
 			{
-				if (config->lstylesAll || f.styles[s] == config->lstyle)
+				const dface_t &f = faces[i];
+				const Lightmap::RectI &rect = lmRects[i];
+				if (rect.w * rect.h == 0)
+					continue;
+				std::vector<uint8_t> flmap(rect.w * rect.h * 3);
+				memset(&flmap[0], 0, flmap.size());
+				int lmOffset = 0;
+				for (int s = 0; s < LM_STYLES && f.styles[s] != 255; s++)
 				{
-					for (int l = 0; l < flmap.size(); l++)
+					if (config->lstylesAll || f.styles[s] == config->lstyle)
 					{
-						int val = flmap[l] + lightmapPixels[f.lightofs + lmOffset + l];
-						flmap[l] = (val > 255) ? 255 : val;
+						for (int l = 0; l < flmap.size(); l++)
+						{
+							int val = flmap[l] + lightmapPixels[f.lightofs + lmOffset + l];
+							flmap[l] = (val > 255) ? 255 : val;
+						}
 					}
+					lmOffset += rect.w * rect.h * 3;
 				}
-				lmOffset += rect.w * rect.h * 3;
-			}
 
-			const uint8_t *data = flmap.data();
-			uint8_t *dst = lmap2.get(rect.x, rect.y);
-			for (int i = 0; i < rect.h; i++)
-			{
-				memcpy(dst, data, rect.w * 3);
-				dst += lmap2.width * 3;
-				data += rect.w * 3;
+				const uint8_t *data = flmap.data();
+				uint8_t *dst = lmap2.get(rect.x, rect.y);
+				for (int i = 0; i < rect.h; i++)
+				{
+					memcpy(dst, data, rect.w * 3);
+					dst += lmap2.width * 3;
+					data += rect.w * 3;
+				}
 			}
+			if (config->lstylesAll)
+				lmap2.save((std::string(name) + "_styles_lightmap.png").c_str());
+			else
+				lmap2.save((std::string(name) + "_style" + std::to_string(config->lstyle) + "_lightmap.png").c_str());
 		}
-		if (config->lstylesAll)
-			lmap2.save((std::string(name) + "_styles_lightmap.png").c_str());
-		else
-			lmap2.save((std::string(name) + "_style" + std::to_string(config->lstyle) + "_lightmap.png").c_str());
-	}
 
-	if (config->lstylesAll && !activeStyles)
-		printf("No lightstyles found\n");
+		if (config->lstylesAll && !activeStyles)
+			printf("No lightstyles found\n");
+	}
 
 	return true;
 }
