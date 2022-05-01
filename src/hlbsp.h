@@ -124,7 +124,10 @@ struct dedge_t
 
 struct dtexinfo_t
 {
-	float	vecs[2][4];		// texmatrix [s/t][xyz offset]
+	vec3_t	texVecS;
+	float	texOffS;
+	vec3_t	texVecT;
+	float	texOffT;
 	int32_t	miptex;
 	int16_t	flags;
 	int16_t	faceInfo;		// xash extension

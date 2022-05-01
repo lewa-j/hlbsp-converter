@@ -164,8 +164,8 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 			if (ti.faceInfo >= 0 && ti.faceInfo < faceInfos.size())
 				sampleSize = faceInfos[ti.faceInfo].textureStep;
 
-			float min_uv[2]{ FLT_MAX, FLT_MAX };
-			float max_uv[2]{ -FLT_MAX, -FLT_MAX };
+			vec2_t min_uv{ FLT_MAX, FLT_MAX };
+			vec2_t max_uv{ -FLT_MAX, -FLT_MAX };
 			for (int j = 0; j < f.numedges; j++)
 			{
 				int e = surfedges[f.firstedge + j];
@@ -180,18 +180,16 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 					return -1;
 				}
 				const vec3_t &v = bspVertices[vi];
-				for (int k = 0; k < 2; k++)
-				{
-					float uv = ((double)v.x * (double)ti.vecs[k][0] + (double)v.y * (double)ti.vecs[k][1] + (double)v.z * (double)ti.vecs[k][2]) + ti.vecs[k][3];
-					min_uv[k] = fmin(min_uv[k], uv);
-					max_uv[k] = fmax(max_uv[k], uv);
-				}
+				vec2_t uv = { v.dot_d(ti.texVecS) + ti.texOffS, v.dot(ti.texVecT) + ti.texOffT };
+				min_uv.x = fmin(min_uv.x, uv.x);
+				max_uv.x = fmax(max_uv.x, uv.x);
+				min_uv.y = fmin(min_uv.y, uv.y);
+				max_uv.y = fmax(max_uv.y, uv.y);
 			}
 
-			lmMins[fi] = { int(floor(min_uv[0] / sampleSize)), int(floor(min_uv[1] / sampleSize)) };
-			int bmaxs[2]{ ceil(max_uv[0] / sampleSize), ceil(max_uv[1] / sampleSize) };
-			rect.w = bmaxs[0] - lmMins[fi].x + 1;
-			rect.h = bmaxs[1] - lmMins[fi].y + 1;
+			lmMins[fi] = { int(floor(min_uv.x / sampleSize)), int(floor(min_uv.y / sampleSize)) };
+			rect.w = ceil(max_uv.x / sampleSize) - lmMins[fi].x + 1;
+			rect.h = ceil(max_uv.y / sampleSize) - lmMins[fi].y + 1;
 		}
 	}
 
@@ -263,10 +261,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 						v.norm.y = -v.norm.y;
 						v.norm.z = -v.norm.z;
 					}
-					for (int k = 0; k < 2; k++)
-					{
-						v.uv[k] = ((double)v.pos.x * (double)ti.vecs[k][0] + (double)v.pos.y * (double)ti.vecs[k][1] + (double)v.pos.z * (double)ti.vecs[k][2]) + ti.vecs[k][3];
-					}
+					v.uv = { v.pos.dot(ti.texVecS) + ti.texOffS, v.pos.dot(ti.texVecT) + ti.texOffT };
 					vertices.push_back(v);
 				}
 
@@ -283,8 +278,8 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 					for (int j = 0; j < f.numedges; j++)
 					{
 						vert_t &v = vertices[faceVertOffset + j];
-						v.uv2[0] = (v.uv[0] - mins.x * sampleSize + rect.x * sampleSize + sampleSize * 0.5f) / (lightmap.block_width * sampleSize);
-						v.uv2[1] = (v.uv[1] - mins.y * sampleSize + rect.y * sampleSize + sampleSize * 0.5f) / (lightmap.block_height * sampleSize);
+						v.uv2.x = (v.uv.x - mins.x * sampleSize + rect.x * sampleSize + sampleSize * 0.5f) / (lightmap.block_width * sampleSize);
+						v.uv2.y = (v.uv.y - mins.y * sampleSize + rect.y * sampleSize + sampleSize * 0.5f) / (lightmap.block_height * sampleSize);
 					}
 				}
 
@@ -294,8 +289,8 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 					for (int j = 0; j < f.numedges; j++)
 					{
 						vert_t &v = vertices[faceVertOffset + j];
-						v.uv[0] /= tex.width;
-						v.uv[1] /= tex.height;
+						v.uv.x /= tex.width;
+						v.uv.y /= tex.height;
 					}
 				}
 

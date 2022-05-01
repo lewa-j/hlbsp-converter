@@ -167,11 +167,10 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 					vert_t vert{};
 					vert.pos = bspVertices[v];
 					vert.norm = normals[normalInds[normalOffsets[mat.second[i]] + ei]];
-					vert.uv[0] = ((vert.pos.x * ti.textureVecS.x + vert.pos.y * ti.textureVecS.y + vert.pos.z * ti.textureVecS.z) + ti.textureOffS) / td.width;
-					vert.uv[1] = ((vert.pos.x * ti.textureVecT.x + vert.pos.y * ti.textureVecT.y + vert.pos.z * ti.textureVecT.z) + ti.textureOffT) / td.height;
+					vert.uv = { (vert.pos.dot(ti.textureVecS) + ti.textureOffS) / td.width, (vert.pos.dot(ti.textureVecT) + ti.textureOffT) / td.height };
 					if (f.lightOfs != -1) {
-						vert.uv2[0] = ((vert.pos.x * ti.lightmapVecS.x + vert.pos.y * ti.lightmapVecS.y + vert.pos.z * ti.lightmapVecS.z) + ti.lightmapOffS + 0.5f - f.lightmapMins[0] + rect.x) / lightmap.block_width;
-						vert.uv2[1] = ((vert.pos.x * ti.lightmapVecT.x + vert.pos.y * ti.lightmapVecT.y + vert.pos.z * ti.lightmapVecT.z) + ti.lightmapOffT + 0.5f - f.lightmapMins[1] + rect.y) / lightmap.block_height;
+						vert.uv2.x = (vert.pos.dot(ti.lightmapVecS) + ti.lightmapOffS + 0.5f - f.lightmapMins[0] + rect.x) / lightmap.block_width;
+						vert.uv2.y = (vert.pos.dot(ti.lightmapVecT) + ti.lightmapOffT + 0.5f - f.lightmapMins[1] + rect.y) / lightmap.block_height;
 					}
 					vertices.push_back(vert);
 				}
@@ -226,11 +225,10 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 					dispVert_t vert{};
 					vert.pos = bspVertices[v];
 					vert.norm = normals[normalInds[normalOffsets[mat.second[i]] + ei]];
-					vert.uv[0] = ((vert.pos.x * ti.textureVecS.x + vert.pos.y * ti.textureVecS.y + vert.pos.z * ti.textureVecS.z) + ti.textureOffS) / td.width;
-					vert.uv[1] = ((vert.pos.x * ti.textureVecT.x + vert.pos.y * ti.textureVecT.y + vert.pos.z * ti.textureVecT.z) + ti.textureOffT) / td.height;
+					vert.uv = { (vert.pos.dot(ti.textureVecS) + ti.textureOffS) / td.width, (vert.pos.dot(ti.textureVecT) + ti.textureOffT) / td.height };
 					if (f.lightOfs != -1) {
-						vert.uv2[0] = ((vert.pos.x * ti.lightmapVecS.x + vert.pos.y * ti.lightmapVecS.y + vert.pos.z * ti.lightmapVecS.z) + ti.lightmapOffS + 0.5f - f.lightmapMins[0] + rect.x) / lightmap.block_width;
-						vert.uv2[1] = ((vert.pos.x * ti.lightmapVecT.x + vert.pos.y * ti.lightmapVecT.y + vert.pos.z * ti.lightmapVecT.z) + ti.lightmapOffT + 0.5f - f.lightmapMins[1] + rect.y) / lightmap.block_height;
+						vert.uv2.x = (vert.pos.dot(ti.lightmapVecS) + ti.lightmapOffS + 0.5f - f.lightmapMins[0] + rect.x) / lightmap.block_width;
+						vert.uv2.y = (vert.pos.dot(ti.lightmapVecT) + ti.lightmapOffT + 0.5f - f.lightmapMins[1] + rect.y) / lightmap.block_height;
 					}
 					vert.alpha = 0.5;
 					dispVertices.push_back(vert);
