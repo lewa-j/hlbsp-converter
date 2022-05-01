@@ -7,13 +7,13 @@ from io_scene_gltf2.blender.imp.gltf2_blender_pbrMetallicRoughness import Materi
 bl_info = {
 	"name": "glTF lightmap Importer Extension",
 	"category": "Import",
-	"version": (1, 1, 0),
+	"version": (1, 2, 0),
 	"blender": (3, 1, 0),
 	'location': 'File > Import > glTF 2.0',
 	'description': 'Addon to add a lightmap feature to an imported glTF file.',
 	'isDraft': True,
 	'developer': "lewa_j",
-	'url': 'https://github.com/lewa-j',
+	'url': 'https://github.com/lewa-j/hlbsp-converter/tree/main/useful%20stuff/Blender/io_scene_gltf_lightmap',
 }
 
 glTF_extension_name = "EXT_materials_lightmap"
@@ -59,6 +59,7 @@ class glTF2ImportUserExtension:
 		blender_mat.node_tree.links.new(emission_socket, node.outputs[0])
 		# Inputs
 		node.inputs['Fac'].default_value = 1.0
+		node.inputs['Color1'].default_value = [1.0, 1.0, 1.0, 1.0]
 		if base_color_node is not None:
 			blender_mat.node_tree.links.new(node.inputs['Color1'], base_color_node.outputs[0])
 		#blender_mat.node_tree.links.new(node.inputs['Color2'], emission_node.outputs[0])
