@@ -167,4 +167,42 @@ struct bspModel_t
 	uint32_t faceCount;
 };
 
+struct bspDispVert_t
+{
+	vec3_t vector;
+	float dist;
+	float alpha;
+};
+
+struct bspDispNeighbor_t
+{
+	uint16_t neighbor;
+	uint8_t neighborOrientation;
+	uint8_t span;
+	uint8_t neighborSpan;
+};
+
+struct bspDispCornerNeighbors_t
+{
+	uint16_t neighbors[4];
+	uint8_t neighborsCount;
+};
+
+struct bspDispInfo_t
+{
+	vec3_t		startPos;
+	uint32_t	dispVertOffset;
+	uint32_t	dispTriOffset;
+	uint32_t	power;
+	uint32_t	minTess;
+	float		lightSmoothingAngle;
+	uint32_t	surfContents;
+	uint16_t	mapFace;
+	uint32_t	lightmapAlphaStart;
+	uint32_t	lightmapSamplePositionStart;
+	bspDispNeighbor_t			edgeNeighbors[4][2];
+	bspDispCornerNeighbors_t	cornerNeighbors[4];
+	uint32_t	allowedVerts[10];
+};
+
 }//srcbsp

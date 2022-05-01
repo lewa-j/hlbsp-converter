@@ -68,12 +68,17 @@ bool ExportMap(const std::string &name, Map &map)
 				bmax.y = fmax(bmax.y, v.y);
 				bmax.z = fmax(bmax.z, v.z);
 			}
+			modelAccessorId = accessorId;
 			accessors[accessorId + 0] = { {"bufferView",bufferViewId + 1},{"byteOffset",0},{"componentType",FLOAT},{"count",part.vertCount},{"type","VEC3"}, {"min",{bmin.x, bmin.y, bmin.z}}, {"max",{bmax.x, bmax.y, bmax.z}} };
 			accessors[accessorId + 1] = { {"bufferView",bufferViewId + 1},{"byteOffset",12},{"componentType",FLOAT},{"count",part.vertCount},{"type","VEC3"} };
 			accessors[accessorId + 2] = { {"bufferView",bufferViewId + 1},{"byteOffset",24},{"componentType",FLOAT},{"count",part.vertCount},{"type","VEC2"} };
 			accessors[accessorId + 3] = { {"bufferView",bufferViewId + 1},{"byteOffset",32},{"componentType",FLOAT},{"count",part.vertCount},{"type","VEC2"} };
-			modelAccessorId = accessorId;
 			accessorId += 4;
+			if (vertsOffset != 0)
+			{
+				accessors[accessorId] = { {"bufferView",bufferViewId + 1},{"byteOffset",40},{"componentType",FLOAT},{"count",part.vertCount},{"type","VEC4"} };
+				accessorId++;
+			}
 
 			for (int j = 0; j < part.submeshes.size(); j++)
 			{
@@ -82,6 +87,10 @@ bool ExportMap(const std::string &name, Map &map)
 					{"indices", accessorId},
 					{"material", part.submeshes[j].material}
 				};
+				if(vertsOffset != 0)
+				{
+					mesh["primitives"][j]["attributes"]["COLOR_0"] = modelAccessorId + 4;
+				}
 				accessors[accessorId] = { {"bufferView", bufferViewId}, { "byteOffset", (part.submeshes[j].offset - part.offset) * indSize }, { "componentType", indType }, { "count", part.submeshes[j].count }, { "type","SCALAR" } };
 				accessorId++;
 			}
