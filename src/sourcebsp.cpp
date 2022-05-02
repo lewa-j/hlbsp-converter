@@ -361,7 +361,7 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 				cv = curV;
 				for (int y = 0; y < width - 1; y++) {
 					for (int x = 0; x < width - 1; x++) {
-						if (cv % 2) {
+						if ((cv- curV) % 2) {
 							indices32.push_back(cv);
 							indices32.push_back(cv + 1);
 							indices32.push_back(cv + width);
