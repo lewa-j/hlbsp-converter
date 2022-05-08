@@ -397,7 +397,7 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 	}
 
 	if(lightmapPixels.size())
-		lightmap.uploadBlock(name);
+		lightmap.uploadBlock(name, config->verbose);
 
 	return true;
 }

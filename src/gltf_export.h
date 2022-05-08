@@ -16,5 +16,5 @@ namespace gltf
 		ELEMENT_ARRAY_BUFFER = 0x8893
 	};
 
-	bool ExportMap(const std::string &name, Map &map);
+	bool ExportMap(const std::string &name, Map &map, bool verbose);
 }

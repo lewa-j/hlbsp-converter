@@ -19,7 +19,7 @@ public:
 		block_width(size), block_height(size), haveVecs(vecs), rgbexp(rgbexp_){}
 	void initBlock();
 	bool allocBlock(RectI &rectInOut);
-	void uploadBlock(const std::string &name);
+	void uploadBlock(const std::string &name, bool verbose);
 
 	void write(const RectI &rect, uint8_t *data, uint8_t *dataVecs = nullptr);
 

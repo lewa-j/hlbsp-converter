@@ -17,7 +17,7 @@ int main(int argc, const char *argv[])
 	printf(HLBSP_CONVERTER_NAME "\n");
 	if (argc < 2 || !strcmp(argv[1], "-h"))
 	{
-		printf("Usage: bsp-converter map.bsp [-lm <max lightmap atlas size>] [-lstyles <light style index>|all] [-skip_sky] [-uint16] [-tex]\n");
+		printf("Usage: bsp-converter map.bsp [-lm <max lightmap atlas size>] [-lstyles <light style index>|all|merge] [-skip_sky] [-uint16] [-tex] [-v]\n");
 		return -1;
 	}
 
@@ -82,23 +82,35 @@ int main(int argc, const char *argv[])
 		else if (!strcmp(argv[i], "-skip_sky"))
 		{
 			config.skipSky = true;
-			printf("Sky polygons will be excluded from export\n");
 		}
 		else if (!strcmp(argv[i], "-uint16"))
 		{
 			config.uint16Inds = true;
-			printf("Set indices type to uint16\n");
 		}
 		else if (!strcmp(argv[i], "-tex"))
 		{
 			config.allTextures = true;
-			printf("All textures will be exported\n");
+		}
+		else if (!strcmp(argv[i], "-v"))
+		{
+			config.verbose = true;
 		}
 		else
 		{
 			printf("Warning: unknown parameter \"%s\"\n", argv[i]);
 		}
 	}
+
+	if (config.verbose)
+	{
+		if (config.skipSky)
+			printf("Sky polygons will be excluded from export\n");
+		if (config.uint16Inds)
+			printf("Set indices type to uint16\n");
+		if (config.allTextures)
+			printf("All textures will be exported\n");
+	}
+
 	if (!config.lightmapSize)
 		config.lightmapSize = 2048;
 
@@ -129,7 +141,7 @@ int main(int argc, const char *argv[])
 			if (wad.lumps[i].type == WadFile::TYP_GFXPIC)
 				tex.name = wad.lumps[i].name;
 			if (LoadMipTexture(&data[0], tex, wad.lumps[i].type))
-				tex.save((std::string("textures/") + tex.name + ".png").c_str());
+				tex.save((std::string("textures/") + tex.name + ".png").c_str(), config.verbose);
 		}
 
 		return 0;
@@ -155,12 +167,12 @@ int main(int argc, const char *argv[])
 		return -1;
 	}
 
-	if (!gltf::ExportMap(mapName, map))
+	if (!gltf::ExportMap(mapName, map, config.verbose))
 	{
 		fprintf(stderr, "Export failed\n");
 		return -1;
 	}
-
-	printf("Success");
+	if (config.verbose)
+		printf("Success");
 	return 0;
 }

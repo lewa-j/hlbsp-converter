@@ -27,7 +27,8 @@ bool Map::load(const char *path, const char *name, LoadConfig *config)
 		fprintf(stderr, "Error: can't open %s: %s\n", path, strerror(errno));
 		return false;
 	}
-	printf("Reading %s\n", path);
+	if (config->verbose)
+		printf("Reading %s\n", path);
 
 	uint32_t ident = 0;
 	fread(&ident, sizeof(ident), 1, f);

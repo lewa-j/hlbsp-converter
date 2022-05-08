@@ -9,7 +9,7 @@
 namespace gltf
 {
 
-bool ExportMap(const std::string &name, Map &map)
+bool ExportMap(const std::string &name, Map &map, bool verbose)
 {
 	using nlohmann::json;
 	json j;
@@ -157,7 +157,7 @@ bool ExportMap(const std::string &name, Map &map)
 	{
 		std::string texturePath = std::string("textures/") + map.textures[i].name + ".png";
 		if (map.textures[i].data.size())
-			map.textures[i].save(texturePath.c_str());
+			map.textures[i].save(texturePath.c_str(), verbose);
 
 		images[i] = { {"uri", texturePath} };
 		textures[i] = { {"source", i} };
@@ -191,7 +191,8 @@ bool ExportMap(const std::string &name, Map &map)
 
 	std::string bufferName = name + ".bin";
 
-	printf("Writing: %s\n", bufferName.c_str());
+	if (verbose)
+		printf("Writing: %s\n", bufferName.c_str());
 	std::ofstream bufferFile(bufferName, std::ios_base::binary);
 	if(map.vertices.size())
 		bufferFile.write((char *)&map.vertices[0], map.vertices.size() * sizeof(map.vertices[0]));
@@ -213,7 +214,8 @@ bool ExportMap(const std::string &name, Map &map)
 
 	j["buffers"] = { { {"uri", bufferName}, {"byteLength", vertsLen + indsLen} } };
 
-	printf("Writing: %s.gltf\n", name.c_str());
+	if (verbose)
+		printf("Writing: %s.gltf\n", name.c_str());
 	std::ofstream o(name + ".gltf");
 	// enable 'pretty printing'
 	o << std::setw(4);

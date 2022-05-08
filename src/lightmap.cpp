@@ -49,13 +49,13 @@ bool Lightmap::allocBlock(RectI &rect)
 	return true;
 }
 
-void Lightmap::uploadBlock(const std::string &name)
+void Lightmap::uploadBlock(const std::string &name, bool verbose)
 {
-	buffer.save((name + "_lightmap" + std::to_string(current_lightmap_texture) + ".png").c_str());
+	buffer.save((name + "_lightmap" + std::to_string(current_lightmap_texture) + ".png").c_str(), verbose);
 	buffer.clearColor();
 	if (haveVecs)
 	{
-		bufferVecs.save((name + "_deluxemap" + std::to_string(current_lightmap_texture) + ".png").c_str());
+		bufferVecs.save((name + "_deluxemap" + std::to_string(current_lightmap_texture) + ".png").c_str(), verbose);
 		bufferVecs.clearColor();
 	}
 	current_lightmap_texture++;

@@ -22,7 +22,7 @@ public:
 	void get(int x, int y, uint8_t *color);
 	uint8_t *get(int x, int y);
 	void set(int x, int y, uint8_t *color);
-	bool save(const char *path);
+	bool save(const char *path, bool verbose);
 
 	int width = 0;
 	int height = 0;

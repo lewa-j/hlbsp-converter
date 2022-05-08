@@ -49,10 +49,11 @@ void Texture::set(int x, int y, uint8_t *color)
 	memcpy(&data[offs], color, bpp);
 }
 
-bool Texture::save(const char *path)
+bool Texture::save(const char *path, bool verbose)
 {
 	int bpp = (format == RGB8 ? 3 : 4);
 	int r = stbi_write_png(path, width, height, bpp, data.data(), bpp * width);
-	printf("Writing: %s \t%s\n", path, r ? "success" : "failed");
+	if(verbose)
+		printf("Writing: %s \t%s\n", path, r ? "success" : "failed");
 	return !!r;
 }

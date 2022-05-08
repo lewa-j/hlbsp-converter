@@ -77,7 +77,8 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 	}
 #undef READ_LUMP
 
-	printf("Load %d models\n", (int)bspModels.size());
+	if (config->verbose)
+		printf("Load %d models\n", (int)bspModels.size());
 	models.resize(bspModels.size());
 
 	parseEntities(&entitiesText[0], entitiesText.size());
@@ -117,11 +118,11 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 		}
 	}
 
-	hlbsp_loadTextures(f, header.lumps[LUMP_TEXTURES].fileofs, header.lumps[LUMP_TEXTURES].filelen, wads);
+	hlbsp_loadTextures(f, header.lumps[LUMP_TEXTURES].fileofs, header.lumps[LUMP_TEXTURES].filelen, wads, config->verbose);
 
 	fclose(f);
 
-	if (lightmapPixels.empty())
+	if (lightmapPixels.empty() && config->verbose)
 	{
 		printf("Map without lightmaps\n");
 	}
@@ -334,7 +335,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 
 	if (lightmapPixels.size())
 	{
-		lightmap.uploadBlock(name);
+		lightmap.uploadBlock(name, config->verbose);
 
 		std::set<int> lstyles;
 		for (int i = 0; i < faces.size(); i++)
@@ -390,19 +391,19 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 				}
 			}
 			if (config->lstylesMerge)
-				lmap2.save((std::string(name) + "_merged_lightmap.png").c_str());
+				lmap2.save((std::string(name) + "_merged_lightmap.png").c_str(), config->verbose);
 			else
-				lmap2.save((std::string(name) + "_style" + std::to_string(*it) + "_lightmap.png").c_str());
+				lmap2.save((std::string(name) + "_style" + std::to_string(*it) + "_lightmap.png").c_str(), config->verbose);
 		}
 
-		if (config->lstylesMerge && lstyles.empty())
+		if (config->lstylesMerge && lstyles.empty() && config->verbose)
 			printf("No lightstyles found\n");
 	}
 
 	return true;
 }
 
-void Map::hlbsp_loadTextures(FILE *f, int fileofs, int filelen, std::vector<WadFile> wads)
+void Map::hlbsp_loadTextures(FILE *f, int fileofs, int filelen, std::vector<WadFile> wads, bool verbose)
 {
 	using namespace hlbsp;
 	if (!filelen)
@@ -411,7 +412,8 @@ void Map::hlbsp_loadTextures(FILE *f, int fileofs, int filelen, std::vector<WadF
 	fseek(f, fileofs, SEEK_SET);
 	int32_t texCount = 0;
 	fread(&texCount, sizeof(uint32_t), 1, f);
-	printf("Load %d textures\n", texCount);
+	if (verbose)
+		printf("Load %d textures\n", texCount);
 	textures.resize(texCount);
 	std::vector<int32_t> texOffs(texCount);
 	fread(&texOffs[0], sizeof(uint32_t), texCount, f);
@@ -459,7 +461,8 @@ void Map::hlbsp_loadTextures(FILE *f, int fileofs, int filelen, std::vector<WadF
 
 		LoadMipTexture(&buffer[0], textures[i]);
 
-		printf("Loaded texture: %s \t%dx%d\n", textures[i].name.c_str(), textures[i].width, textures[i].height);
+		if (verbose)
+			printf("Loaded texture: %s \t%dx%d\n", textures[i].name.c_str(), textures[i].width, textures[i].height);
 	}
 }
 
