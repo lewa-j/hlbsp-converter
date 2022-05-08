@@ -22,6 +22,8 @@ add_executable (bsp-converter
 	"src/wad.cpp"
 	"src/mip_texture.cpp"
 	"src/parser.h"
-	"src/parser.cpp")
+	"src/parser.cpp"
+	"src/vector_math.h"
+	)
 
 install(TARGETS bsp-converter DESTINATION bin)

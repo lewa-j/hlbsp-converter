@@ -159,6 +159,6 @@ int main(int argc, const char *argv[])
 		return -1;
 	}
 
-	printf("Success\n");
+	printf("Success");
 	return 0;
 }

@@ -1,8 +1,9 @@
 // Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 
 #include "sourcebsp.h"
-#include "lightmap.h"
 #include <map>
+#include "map.h"
+#include "lightmap.h"
 
 bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 {

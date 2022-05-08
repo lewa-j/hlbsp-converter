@@ -1,9 +1,10 @@
 // Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 #include "gltf_export.h"
-#include "bsp-converter.h"
-#include "nlohmann/json.hpp"
 #include <fstream>
 #include <direct.h>
+#include "nlohmann/json.hpp"
+#include "map.h"
+#include "bsp-converter.h"
 
 namespace gltf
 {

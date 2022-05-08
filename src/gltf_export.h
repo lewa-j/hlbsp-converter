@@ -1,7 +1,8 @@
 // Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 #pragma once
 
-#include "map.h"
+#include <string>
+class Map;
 
 namespace gltf
 {

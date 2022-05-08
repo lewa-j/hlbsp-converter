@@ -1,9 +1,10 @@
 // Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 #include "hlbsp.h"
-#include "lightmap.h"
-#include "wad.h"
 #include <stdio.h>
 #include <map>
+#include "map.h"
+#include "lightmap.h"
+#include "wad.h"
 #include "parser.h"
 
 bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
@@ -265,7 +266,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 					vertices.push_back(v);
 				}
 
-				if (lightmapPixels.size() && f.lightofs != -1 && f.styles[0] == 0)
+				if (lightmapPixels.size() && f.lightofs != -1)
 				{
 					auto &rect = lmRects[mat.second[i]];
 					int sampleSize = lmSampleSize;
@@ -273,13 +274,21 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 						sampleSize = faceInfos[ti.faceInfo].textureStep;
 
 					vec2i_t mins = lmMins[mat.second[i]];
+					if (f.styles[0] == 0)
+						lightmap.write(rect, &lightmapPixels[f.lightofs], lightmapVecs.size() ? &lightmapVecs[f.lightofs] : nullptr);
 
-					lightmap.write(rect, &lightmapPixels[f.lightofs], lightmapVecs.size() ? &lightmapVecs[f.lightofs] : nullptr);
 					for (int j = 0; j < f.numedges; j++)
 					{
 						vert_t &v = vertices[faceVertOffset + j];
-						v.uv2.x = (v.uv.x - mins.x * sampleSize + rect.x * sampleSize + sampleSize * 0.5f) / (lightmap.block_width * sampleSize);
-						v.uv2.y = (v.uv.y - mins.y * sampleSize + rect.y * sampleSize + sampleSize * 0.5f) / (lightmap.block_height * sampleSize);
+						if (f.styles[0] != 255)
+						{
+							v.uv2.x = (v.uv.x - mins.x * sampleSize + rect.x * sampleSize + sampleSize * 0.5f) / (lightmap.block_width * sampleSize);
+							v.uv2.y = (v.uv.y - mins.y * sampleSize + rect.y * sampleSize + sampleSize * 0.5f) / (lightmap.block_height * sampleSize);
+						}
+						else
+						{
+							v.uv2 = { 1.0f - (0.5f / lightmap.block_width), 1.0f - (0.5f / lightmap.block_height) };
+						}
 					}
 				}
 
@@ -330,9 +339,9 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 		for (int i = 0; i < faces.size(); i++)
 		{
 			const dface_t &f = faces[i];
-			for (int j = 0; j < LM_STYLES; j++)
+			for (int j = 0; j < LM_STYLES && f.styles[j] != 255; j++)
 			{
-				if (f.styles[j] != 0 && f.styles[j] != 255 && (config->lstylesAll || f.styles[j] == config->lstyle))
+				if (f.styles[j] != 0 && (config->lstylesAll || f.styles[j] == config->lstyle))
 				{
 					activeStyles++;
 					break;

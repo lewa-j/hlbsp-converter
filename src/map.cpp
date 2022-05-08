@@ -8,6 +8,19 @@ bool Map::load(const char *path, const char *name, LoadConfig *config)
 	if (!config)
 		config = &defaultConfig;
 
+	struct stat s;
+	if (stat(path, &s))
+	{
+		fprintf(stderr, "Error: file %s doesn't exists (%s)\n", path, strerror(errno));
+		return false;
+	}
+
+	if (s.st_size < 4)
+	{
+		fprintf(stderr, "Error: file %s is empty\n", path);
+		return false;
+	}
+
 	FILE *f = fopen(path, "rb");
 	if (!f)
 	{

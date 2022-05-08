@@ -1,7 +1,7 @@
 // Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 #pragma once
 
-#include "map.h"
+#include "vector_math.h"
 #include <stdint.h>
 #include <vector>
 
