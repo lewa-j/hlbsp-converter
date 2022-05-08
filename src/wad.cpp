@@ -7,7 +7,7 @@ WadFile::~WadFile()
 		fclose(f);
 }
 
-bool WadFile::Load(const char *path)
+bool WadFile::load(const char *path)
 {
 	f = fopen(path, "rb");
 	if (!f)
@@ -38,7 +38,7 @@ bool WadFile::Load(const char *path)
 	return true;
 }
 
-bool WadFile::GetLump(int index, std::vector<uint8_t> &data)
+bool WadFile::getLump(int index, std::vector<uint8_t> &data)
 {
 	if (index < 0 || index >= lumps.size())
 		return false;
@@ -50,7 +50,7 @@ bool WadFile::GetLump(int index, std::vector<uint8_t> &data)
 	return true;
 }
 
-bool WadFile::FindLump(const char *name, std::vector<uint8_t> &data)
+bool WadFile::findLump(const char *name, std::vector<uint8_t> &data)
 {
 	int i = 0;
 	for (; i < lumps.size(); i++)
@@ -61,5 +61,5 @@ bool WadFile::FindLump(const char *name, std::vector<uint8_t> &data)
 	if (i == lumps.size())
 		return false;
 
-	return GetLump(i, data);
+	return getLump(i, data);
 }

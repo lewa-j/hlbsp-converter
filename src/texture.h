@@ -32,4 +32,4 @@ public:
 };
 
 bool LoadMipTexture(const uint8_t *data, Texture &tex, int type = 67);
-bool LoadVtfTexture(const uint8_t *data, size_t size, Texture &tex);
+bool LoadVtfTexture(const uint8_t *data, size_t size, Texture &tex, bool scan);

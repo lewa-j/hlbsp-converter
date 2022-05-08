@@ -3,6 +3,7 @@
 #include "map.h"
 #include "gltf_export.h"
 #include "wad.h"
+#include "vpk.h"
 #include "texture.h"
 #include <direct.h>
 #include "rgbcx.h"
@@ -33,11 +34,12 @@ int main(int argc, const char *argv[])
 			fileName = fileName.substr(p + 1);
 		}
 		auto l = fileName.find_last_of('.');
-		if (l)
+		if (l != std::string::npos)
 			fileName = fileName.substr(0, l);
 	}
 
 	Map::LoadConfig config;
+	bool scan = false;
 
 	for (int i = 2; i < argc; i++)
 	{
@@ -98,6 +100,10 @@ int main(int argc, const char *argv[])
 		{
 			config.verbose = true;
 		}
+		else if (!strcmp(argv[i], "-scan"))
+		{
+			scan = true;
+		}
 		else
 		{
 			printf("Warning: unknown parameter \"%s\"\n", argv[i]);
@@ -126,10 +132,8 @@ int main(int argc, const char *argv[])
 	if (strcasestr(argv[1], ".wad") != nullptr)
 	{
 		WadFile wad;
-		if (!wad.Load(argv[1]))
+		if (!wad.load(argv[1]))
 			return -1;
-
-		_mkdir("textures");
 
 		std::vector<uint8_t> data;
 		Texture tex;
@@ -140,11 +144,47 @@ int main(int argc, const char *argv[])
 				printf("lump %d (%s) unknown type %d\n", i, wad.lumps[i].name, wad.lumps[i].type);
 				continue;
 			}
-			wad.GetLump(i, data);
+			wad.getLump(i, data);
 			if (wad.lumps[i].type == WadFile::TYP_GFXPIC)
 				tex.name = wad.lumps[i].name;
 			if (LoadMipTexture(&data[0], tex, wad.lumps[i].type))
-				tex.save((std::string("textures/") + tex.name + ".png").c_str(), config.verbose);
+				if (!scan)
+					tex.save((fileName + "_wad/" + tex.name + ".png").c_str(), config.verbose);
+		}
+
+		return 0;
+	}
+	else if (strcasestr(argv[1], ".vpk") != nullptr)
+	{
+		VpkFile vpk;
+		if (!vpk.load(argv[1]))
+			return -1;
+
+		if (config.allTextures)
+		{
+			std::vector<uint8_t> data;
+			Texture tex;
+			for (auto it = vpk.entries.begin(); it != vpk.entries.end(); it++)
+			{
+				if (it->first.find(".vtf") == std::string::npos)
+					continue;
+				if (!vpk.getFile(it->first.c_str(), data))
+					continue;
+
+				tex.name = it->first;
+				if (LoadVtfTexture(&data[0], data.size(), tex, scan))
+				{
+					auto l = tex.name.find_last_of('.');
+					if (l != std::string::npos)
+						tex.name = tex.name.substr(0, l);
+					if (!scan)
+						tex.save((fileName + "_vpk/" + tex.name + ".png").c_str(), config.verbose);
+				}
+				else
+				{
+					printf("vpk: %s load failed\n", it->first.c_str());
+				}
+			}
 		}
 
 		return 0;
@@ -164,7 +204,7 @@ int main(int argc, const char *argv[])
 		fread(&data[0], data.size(), 1, f);
 
 		Texture tex;
-		if (!LoadVtfTexture(data.data(), data.size(), tex))
+		if (!LoadVtfTexture(data.data(), data.size(), tex, scan))
 		{
 			fprintf(stderr, "Error: LoadVtfTexture %s failed\n", argv[1]);
 			return -1;
@@ -194,7 +234,7 @@ int main(int argc, const char *argv[])
 		return -1;
 	}
 
-	if (!gltf::ExportMap(fileName, map, config.verbose))
+	if (!gltf::exportMap(fileName, map, config.verbose))
 	{
 		fprintf(stderr, "Export failed\n");
 		return -1;

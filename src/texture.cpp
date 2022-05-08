@@ -1,5 +1,6 @@
 // Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 #include "texture.h"
+#include <direct.h>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
@@ -49,8 +50,23 @@ void Texture::set(int x, int y, uint8_t *color)
 	memcpy(&data[offs], color, bpp);
 }
 
+void createDirs(std::string path)
+{
+	size_t p = 0;
+	while (true)
+	{
+		p = path.find('/', p + 1);
+		if (p == std::string::npos)
+			return;
+
+		_mkdir(path.substr(0, p).c_str());
+	}
+}
+
 bool Texture::save(const char *path, bool verbose)
 {
+	createDirs(path);
+
 	int bpp = (format == RGB8 ? 3 : 4);
 	int r = stbi_write_png(path, width, height, bpp, data.data(), bpp * width);
 	if(verbose)

@@ -9,7 +9,7 @@
 namespace gltf
 {
 
-bool ExportMap(const std::string &name, Map &map, bool verbose)
+bool exportMap(const std::string &name, Map &map, bool verbose)
 {
 	using nlohmann::json;
 	json j;
@@ -146,8 +146,6 @@ bool ExportMap(const std::string &name, Map &map, bool verbose)
 			meshId++;
 		}
 	}
-
-	_mkdir("textures");
 
 	auto &textures = j["textures"];
 	auto &images = j["images"];

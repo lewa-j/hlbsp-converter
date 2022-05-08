@@ -6,10 +6,10 @@
 
 int getSize(int width, int height, int depth, eVtfFormat fmt)
 {
-	if (fmt == eVtfFormat::BGR888) {
+	if (fmt == eVtfFormat::BGR888 || fmt == eVtfFormat::RGB888) {
 		return depth * width * height * 3;
 	}
-	else if (fmt == eVtfFormat::BGRA8888) {
+	else if (fmt == eVtfFormat::BGRA8888 || fmt == eVtfFormat::BGRX8888 || fmt == eVtfFormat::RGBA8888) {
 		return depth * width * height * 4;
 	}
 	else if (fmt == eVtfFormat::DXT1) {
@@ -22,13 +22,39 @@ int getSize(int width, int height, int depth, eVtfFormat fmt)
 		return depth * width * height * 2;
 	}
 	else if (fmt == eVtfFormat::RGBA16161616F) {
-		return depth * width * height * 4;
+		return depth * width * height * 8;
 	}
 
 	return 0;
 }
 
-bool LoadVtfTexture(const uint8_t *data, size_t size, Texture &tex)
+// https://stackoverflow.com/a/60047308
+uint32_t as_uint(const float x) {
+	return *(uint32_t *)&x;
+}
+float as_float(const uint32_t x) {
+	return *(float *)&x;
+}
+float half_to_float(const uint16_t x) { // IEEE-754 16-bit floating-point format (without infinity): 1-5-10, exp-15, +-131008.0, +-6.1035156E-5, +-5.9604645E-8, 3.311 digits
+	const uint32_t e = (x & 0x7C00) >> 10; // exponent
+	const uint32_t m = (x & 0x03FF) << 13; // mantissa
+	const uint32_t v = as_uint((float)m) >> 23; // evil log2 bit hack to count leading zeros in denormalized format
+	return as_float((x & 0x8000) << 16 | (e != 0) * ((e + 112) << 23 | m) | ((e == 0) & (m != 0)) * ((v - 37) << 23 | ((m << (150 - v)) & 0x007FE000))); // sign : normalized : denormalized
+}
+uint16_t float_to_half(const float x) { // IEEE-754 16-bit floating-point format (without infinity): 1-5-10, exp-15, +-131008.0, +-6.1035156E-5, +-5.9604645E-8, 3.311 digits
+	const uint32_t b = as_uint(x) + 0x00001000; // round-to-nearest-even: add last bit after truncated mantissa
+	const uint32_t e = (b & 0x7F800000) >> 23; // exponent
+	const uint32_t m = b & 0x007FFFFF; // mantissa; in line below: 0x007FF000 = 0x00800000-0x00001000 = decimal indicator flag - initial rounding
+	return (b & 0x80000000) >> 16 | (e > 112) * ((((e - 112) << 10) & 0x7C00) | m >> 13) | ((e < 113) & (e > 101)) * ((((0x007FF000 + m) >> (125 - e)) + 1) >> 1) | (e > 143) * 0x7FFF; // sign : normalized : denormalized : saturate
+}
+
+uint8_t half_to_byte(uint16_t x)
+{
+	int i = half_to_float(x) * 255.0f * 4.0f;
+	return (i > 255) ? 255 : ((i < 0) ? 0 : i);
+}
+
+bool LoadVtfTexture(const uint8_t *data, size_t size, Texture &tex, bool scan)
 {
 	vtfHdrBase_t baseHdr{};
 	vtfHdr_7_3_t hdr{};
@@ -70,11 +96,11 @@ bool LoadVtfTexture(const uint8_t *data, size_t size, Texture &tex)
 	int offset = baseHdr.headerLength + ((hdr.lowResImageWidth + 3) / 4) * ((hdr.lowResImageHeight + 3) / 4) * 8;
 	int faceSize = 0;
 	Texture::Format fmt = Texture::RGBA8;
-	if (hdr.imageFormat == eVtfFormat::BGR888){
+	if (hdr.imageFormat == eVtfFormat::BGR888 || hdr.imageFormat == eVtfFormat::RGB888){
 		faceSize = hdr.width * hdr.height * 3;
 		fmt = Texture::RGB8;
 	}
-	else if (hdr.imageFormat == eVtfFormat::BGRA8888) {
+	else if (hdr.imageFormat == eVtfFormat::BGRA8888 || hdr.imageFormat == eVtfFormat::BGRX8888 || hdr.imageFormat == eVtfFormat::RGBA8888) {
 		faceSize = hdr.width * hdr.height * 4;
 		fmt = Texture::RGBA8;
 	}
@@ -90,6 +116,10 @@ bool LoadVtfTexture(const uint8_t *data, size_t size, Texture &tex)
 		faceSize = hdr.width * hdr.height * 2;
 		fmt = Texture::RGB8;
 	}
+	else if (hdr.imageFormat == eVtfFormat::RGBA16161616F) {
+		faceSize = hdr.width * hdr.height * 8;
+		fmt = Texture::RGBA8;
+	}
 	else {
 		fprintf(stderr, "Error: unsupported vtf format %d\n", hdr.imageFormat);
 		return false;
@@ -97,7 +127,7 @@ bool LoadVtfTexture(const uint8_t *data, size_t size, Texture &tex)
 
 	int numFaces = 1;
 	if (hdr.flags & (uint32_t)eVtfFlags::CUBEMAP)
-		numFaces = baseHdr.version[1] >= 5 ? 6 : 7;
+		numFaces = (baseHdr.version[1] < 1 || baseHdr.version[1] >= 5) ? 6 : 7;
 
 	{
 		int w = hdr.width >> 1;
@@ -117,32 +147,51 @@ bool LoadVtfTexture(const uint8_t *data, size_t size, Texture &tex)
 
 	if (size < offset + faceSize * hdr.depth * hdr.numFrames * numFaces)
 	{
-		fprintf(stderr, "Error: unexpected vtf file size (%d < %d)\n", (int)size, offset + faceSize * hdr.depth * hdr.numFrames * numFaces);
-		return false;
+		if (size >= offset + faceSize * hdr.depth * hdr.numFrames * 6)
+		{
+			numFaces = 6;
+			printf("vtf: have 6 faces instead of 7 (%s)\n",tex.name.c_str());
+		}
+		else
+		{
+			fprintf(stderr, "Error: unexpected vtf file size (%d < %d)\n", (int)size, offset + faceSize * hdr.depth * hdr.numFrames * numFaces);
+			return false;
+		}
 	}
+
+	if (scan)
+		return true;
 
 	tex.create(hdr.width, hdr.height, fmt);
 	if (hdr.imageFormat == eVtfFormat::BGR888) {
 		memcpy(&tex.data[0], data + offset, faceSize);
-		uint8_t *td = &tex.data[0];
-		for (int i = 0; i < hdr.width * hdr.height; i++)
+		if (hdr.imageFormat != eVtfFormat::RGB888)
 		{
-			uint8_t t = td[0];
-			td[0] = td[3];
-			td[3] = t;
-			td += 3;
+			uint8_t *td = &tex.data[0];
+			for (int i = 0; i < hdr.width * hdr.height; i++)
+			{
+				uint8_t t = td[0];
+				td[0] = td[2];
+				td[2] = t;
+				td += 3;
+			}
 		}
 	}
-	else if (hdr.imageFormat == eVtfFormat::BGRA8888)
+	else if (hdr.imageFormat == eVtfFormat::BGRA8888 || hdr.imageFormat == eVtfFormat::BGRX8888)
 	{
 		memcpy(&tex.data[0], data + offset, faceSize);
-		uint8_t *td = &tex.data[0];
-		for (int i = 0; i < hdr.width * hdr.height; i++)
+		if (hdr.imageFormat != eVtfFormat::RGBA8888)
 		{
-			uint8_t t = td[0];
-			td[0] = td[3];
-			td[3] = t;
-			td += 4;
+			uint8_t *td = &tex.data[0];
+			for (int i = 0; i < hdr.width * hdr.height; i++)
+			{
+				uint8_t t = td[0];
+				td[0] = td[2];
+				td[2] = t;
+				if (hdr.imageFormat == eVtfFormat::BGRX8888)
+					td[3] = 255;
+				td += 4;
+			}
 		}
 	}
 	else if (hdr.imageFormat == eVtfFormat::UV88) {
@@ -182,6 +231,19 @@ bool LoadVtfTexture(const uint8_t *data, size_t size, Texture &tex)
 					memcpy(tex.get(j, i + k), &block[k * 16], 16);
 				ts += 16;
 			}
+		}
+	}
+	else if (hdr.imageFormat == eVtfFormat::RGBA16161616F) {
+		const uint16_t *ts = (const uint16_t*)(data + offset);
+		uint8_t *td = &tex.data[0];
+		for (int i = 0; i < hdr.width * hdr.height; i++)
+		{
+			td[0] = half_to_byte(ts[0]);
+			td[1] = half_to_byte(ts[1]);
+			td[2] = half_to_byte(ts[2]);
+			td[3] = half_to_byte(ts[3]);
+			ts += 4;
+			td += 4;
 		}
 	}
 

@@ -39,7 +39,7 @@ public:
 	FILE *f = nullptr;
 	std::vector<lumpinfo_t> lumps;
 
-	bool Load(const char *path);
-	bool GetLump(int index, std::vector<uint8_t> &data);
-	bool FindLump(const char *name, std::vector<uint8_t> &data);
+	bool load(const char *path);
+	bool getLump(int index, std::vector<uint8_t> &data);
+	bool findLump(const char *name, std::vector<uint8_t> &data);
 };

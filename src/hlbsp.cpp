@@ -100,7 +100,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 			struct stat statBuffer;
 			if (!stat(wadPath.c_str(), &statBuffer))
 			{
-				wads[i].Load(wadPath.c_str());
+				wads[i].load(wadPath.c_str());
 				continue;
 			}
 
@@ -109,7 +109,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 				wadPath = basePath + wadNames[i];
 				if (!stat(wadPath.c_str(), &statBuffer))
 				{
-					wads[i].Load(wadPath.c_str());
+					wads[i].load(wadPath.c_str());
 					continue;
 				}
 			}
@@ -445,7 +445,7 @@ void Map::hlbsp_loadTextures(FILE *f, int fileofs, int filelen, std::vector<WadF
 			int w = 0;
 			for (; w < wads.size(); w++)
 			{
-				if (wads[w].FindLump(texHeader.name, buffer))
+				if (wads[w].findLump(texHeader.name, buffer))
 					break;
 			}
 

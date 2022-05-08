@@ -75,13 +75,14 @@ enum class eVtfFlags
 	CUBEMAP = 0x4000
 };
 
+#pragma pack(1)
 struct vtfHdrBase_t
 {
 	char ident[4];
 	int32_t version[2];
 	int32_t headerLength;
 };
-#pragma pack(1)
+
 struct vtfHdr_7_1_t
 {
 	uint16_t width;
@@ -99,7 +100,6 @@ struct vtfHdr_7_1_t
 	uint8_t lowResImageWidth;
 	uint8_t lowResImageHeight;
 };
-#pragma pack()
 
 struct vtfHdr_7_2_t : public vtfHdr_7_1_t
 {
@@ -112,4 +112,5 @@ struct vtfHdr_7_3_t : public vtfHdr_7_2_t
 	uint32_t numResources;
 	uint32_t pad5[2];
 };
+#pragma pack()
 

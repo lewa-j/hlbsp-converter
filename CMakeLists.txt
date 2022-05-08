@@ -27,6 +27,8 @@ add_executable (bsp-converter
 	"src/vtf.h"
 	"src/vtf_texture.cpp"
 	"src/rgbcx.cpp"
+	"src/vpk.h"
+	"src/vpk.cpp"
 	)
 
 install(TARGETS bsp-converter DESTINATION bin)
