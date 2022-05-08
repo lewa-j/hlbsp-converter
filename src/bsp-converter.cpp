@@ -5,6 +5,7 @@
 #include "wad.h"
 #include "texture.h"
 #include <direct.h>
+#include "rgbcx.h"
 
 #if _MSC_VER
 #include <Shlwapi.h>
@@ -21,17 +22,19 @@ int main(int argc, const char *argv[])
 		return -1;
 	}
 
-	std::string mapName = argv[1];
+	rgbcx::init();
+
+	std::string fileName = argv[1];
 	std::string rootPath;
 	{
-		int p = mapName.find_last_of("/\\");
+		int p = fileName.find_last_of("/\\");
 		if (p != std::string::npos) {
-			rootPath = mapName.substr(0, p + 1);
-			mapName = mapName.substr(p + 1);
+			rootPath = fileName.substr(0, p + 1);
+			fileName = fileName.substr(p + 1);
 		}
-		auto l = mapName.find_last_of('.');
+		auto l = fileName.find_last_of('.');
 		if (l)
-			mapName = mapName.substr(0, l);
+			fileName = fileName.substr(0, l);
 	}
 
 	Map::LoadConfig config;
@@ -146,6 +149,30 @@ int main(int argc, const char *argv[])
 
 		return 0;
 	}
+	else if (strcasestr(argv[1], ".vtf") != nullptr)
+	{
+		FILE *f = fopen(argv[1], "rb");
+		if (!f)
+		{
+			fprintf(stderr, "Error: can't open %s: %s\n", argv[1], strerror(errno));
+			return -1;
+		}
+
+		fseek(f, 0, SEEK_END);
+		std::vector<uint8_t> data(ftell(f));
+		fseek(f, 0, SEEK_SET);
+		fread(&data[0], data.size(), 1, f);
+
+		Texture tex;
+		if (!LoadVtfTexture(data.data(), data.size(), tex))
+		{
+			fprintf(stderr, "Error: LoadVtfTexture %s failed\n", argv[1]);
+			return -1;
+		}
+		tex.save((fileName + ".png").c_str(), config.verbose);
+
+		return 0;
+	}
 	else if (strcasestr(argv[1], ".bsp") != nullptr)
 	{
 		mapPath = argv[1];
@@ -161,13 +188,13 @@ int main(int argc, const char *argv[])
 	}
 
 	Map map;
-	if (!map.load(mapPath.c_str(), mapName.c_str(), &config))
+	if (!map.load(mapPath.c_str(), fileName.c_str(), &config))
 	{
 		fprintf(stderr, "Can't load map\n");
 		return -1;
 	}
 
-	if (!gltf::ExportMap(mapName, map, config.verbose))
+	if (!gltf::ExportMap(fileName, map, config.verbose))
 	{
 		fprintf(stderr, "Export failed\n");
 		return -1;

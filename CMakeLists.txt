@@ -24,6 +24,9 @@ add_executable (bsp-converter
 	"src/parser.h"
 	"src/parser.cpp"
 	"src/vector_math.h"
+	"src/vtf.h"
+	"src/vtf_texture.cpp"
+	"src/rgbcx.cpp"
 	)
 
 install(TARGETS bsp-converter DESTINATION bin)

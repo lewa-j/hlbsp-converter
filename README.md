@@ -27,14 +27,20 @@ To extract textures from wad
 ./bsp-converter path/to/file.bsp
 ```
 
+To convert vtf texture to png
+```sh
+./bsp-converter path/to/file.vtf
+```
+
 ### Options
 
 * `-lm <number>` - set a maximum lightmap atlas size (default 2048). Actual size is calculated based on surfaces and can be smaller.
 * `-skip_sky` - exclude polygons with 'sky' texture from export 
-* `-lstyle <number>|all` - export lightmap with a specified lightstyle index or all lightyles in one.
+* `-lstyle <number>|all|merge` - export lightmap with a specified lightstyle index or all lightyles, or merge into one.
 * `-uint16` - sets index buffer type to usigned short. Useful for old mobile GPU without GL_OES_element_index_uint. Will split models into smaller meshes if required.
 * `-tex` - export all textures, including loaded from wads.
 * `-game <path>` - directory containing "maps" dir and .wad files
+* `-v` - verbose log
 
 ## Extras
 
@@ -46,6 +52,7 @@ Project also contains:
 
 * [nlohmann/json](https://github.com/nlohmann/json)
 * [stb_image_write](https://github.com/nothings/stb)
+* [richgel999/bc7enc_rdo](https://github.com/richgel999/bc7enc_rdo) for BC1,BC3 decoding
 
 ## Acknowledgments
 
