@@ -2,6 +2,7 @@
 #include "hlbsp.h"
 #include <stdio.h>
 #include <map>
+#include <set>
 #include "map.h"
 #include "lightmap.h"
 #include "wad.h"
@@ -335,24 +336,25 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 	{
 		lightmap.uploadBlock(name);
 
-		int activeStyles = 0;
+		std::set<int> lstyles;
 		for (int i = 0; i < faces.size(); i++)
 		{
 			const dface_t &f = faces[i];
 			for (int j = 0; j < LM_STYLES && f.styles[j] != 255; j++)
 			{
-				if (f.styles[j] != 0 && (config->lstylesAll || f.styles[j] == config->lstyle))
+				if (f.styles[j] != 0 && (config->lstylesAll || config->lstylesMerge || f.styles[j] == config->lstyle))
 				{
-					activeStyles++;
-					break;
+					lstyles.insert(f.styles[j]);
+					if (config->lstylesMerge)
+						break;
 				}
 			}
 
-			if (activeStyles)
+			if (config->lstylesMerge && lstyles.size())
 				break;
 		}
 
-		if (activeStyles)
+		for (auto it = lstyles.begin(); it != lstyles.end(); it++)
 		{
 			Texture lmap2(lightmap.block_width, lightmap.block_height, Texture::RGB8);
 
@@ -367,7 +369,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 				int lmOffset = 0;
 				for (int s = 0; s < LM_STYLES && f.styles[s] != 255; s++)
 				{
-					if (config->lstylesAll || f.styles[s] == config->lstyle)
+					if (config->lstylesMerge || f.styles[s] == *it)
 					{
 						for (int l = 0; l < flmap.size(); l++)
 						{
@@ -387,13 +389,13 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 					data += rect.w * 3;
 				}
 			}
-			if (config->lstylesAll)
-				lmap2.save((std::string(name) + "_styles_lightmap.png").c_str());
+			if (config->lstylesMerge)
+				lmap2.save((std::string(name) + "_merged_lightmap.png").c_str());
 			else
-				lmap2.save((std::string(name) + "_style" + std::to_string(config->lstyle) + "_lightmap.png").c_str());
+				lmap2.save((std::string(name) + "_style" + std::to_string(*it) + "_lightmap.png").c_str());
 		}
 
-		if (config->lstylesAll && !activeStyles)
+		if (config->lstylesMerge && lstyles.empty())
 			printf("No lightstyles found\n");
 	}
 

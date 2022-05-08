@@ -69,12 +69,14 @@ int main(int argc, const char *argv[])
 				i++;
 				if (!strcmp(argv[i], "all"))
 					config.lstylesAll = true;
+				else if (!strcmp(argv[i], "merge"))
+					config.lstylesMerge = true;
 				else
 					config.lstyle = atoi(argv[i]);
 			}
 			else
 			{
-				printf("Warning: '-lstyle' parameter requires a number - light style index, or a word 'all'\n");
+				printf("Warning: '-lstyle' parameter requires a number - light style index, or a word 'all' or 'merge'\n");
 			}
 		}
 		else if (!strcmp(argv[i], "-skip_sky"))
