@@ -1,6 +1,11 @@
 // Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 
 #include "map.h"
+#include <cstring>
+
+#ifdef __linux__
+#include <sys/stat.h>
+#endif
 
 bool Map::load(const char *path, const char *name, LoadConfig *config)
 {

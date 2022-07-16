@@ -1,5 +1,12 @@
 // Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 #include "wad.h"
+#include <cerrno>
+#include <cstring>
+
+#ifdef __linux__
+#include <strings.h>
+#define strnicmp strncasecmp
+#endif
 
 WadFile::~WadFile()
 {
@@ -33,7 +40,7 @@ bool WadFile::load(const char *path)
 		fread(&lumps[0], sizeof(lumps[0]), lumps.size(), f);
 	}
 
-	printf("Loaded %s with %d lumps\n", path, lumps.size());
+	printf("Loaded %s with %ld lumps\n", path, lumps.size());
 
 	return true;
 }

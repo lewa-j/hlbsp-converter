@@ -4,6 +4,7 @@
 #include <map>
 #include "map.h"
 #include "lightmap.h"
+#include <cfloat>
 
 bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 {
