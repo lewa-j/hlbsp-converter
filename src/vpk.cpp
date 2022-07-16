@@ -1,6 +1,7 @@
 // Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 #include "vpk.h"
 #include <stdio.h>
+#include <cstring>
 
 bool VpkFile::load(const char *path)
 {

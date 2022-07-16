@@ -3,6 +3,7 @@
 #include "texture.h"
 #include "hlbsp.h"
 #include "wad.h"
+#include <cstring>
 
 bool LoadMipTexture(const uint8_t *data, Texture &tex, int type)
 {

@@ -5,8 +5,12 @@
 #include "wad.h"
 #include "vpk.h"
 #include "texture.h"
-#include <direct.h>
 #include "rgbcx.h"
+#include <cstring>
+
+#ifdef _WIN32
+#include <direct.h>
+#endif
 
 #if _MSC_VER
 #include <Shlwapi.h>

@@ -1,5 +1,7 @@
 // Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 #include "lightmap.h"
+#include <cstring>
+#include <cmath>
 
 // atlas packing code from https://github.com/id-Software/Quake-2/blob/master/ref_gl/gl_rsurf.c
 

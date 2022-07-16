@@ -7,6 +7,15 @@
 #include "lightmap.h"
 #include "wad.h"
 #include "parser.h"
+#include <cfloat>
+#include <cstring>
+
+#ifdef __linux__
+#include <sys/stat.h>
+#include <strings.h>
+
+#define strnicmp strncasecmp
+#endif
 
 bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 {
@@ -183,7 +192,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 					return -1;
 				}
 				const vec3_t &v = bspVertices[vi];
-				vec2_t uv = { v.dot_d(ti.texVecS) + ti.texOffS, v.dot(ti.texVecT) + ti.texOffT };
+				vec2_t uv = { static_cast<float>(v.dot_d(ti.texVecS)) + ti.texOffS, static_cast<float>(v.dot(ti.texVecT)) + ti.texOffT };
 				min_uv.x = fmin(min_uv.x, uv.x);
 				max_uv.x = fmax(max_uv.x, uv.x);
 				min_uv.y = fmin(min_uv.y, uv.y);

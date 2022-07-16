@@ -3,6 +3,7 @@
 #include "texture.h"
 #include "vtf.h"
 #include "rgbcx.h"
+#include <cstring>
 
 int getSize(int width, int height, int depth, eVtfFormat fmt)
 {
@@ -121,7 +122,7 @@ bool LoadVtfTexture(const uint8_t *data, size_t size, Texture &tex, bool scan)
 		fmt = Texture::RGBA8;
 	}
 	else {
-		fprintf(stderr, "Error: unsupported vtf format %d\n", hdr.imageFormat);
+		fprintf(stderr, "Error: unsupported vtf format %d\n", static_cast<int32_t>(hdr.imageFormat));
 		return false;
 	}
 

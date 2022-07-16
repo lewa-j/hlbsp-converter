@@ -1,6 +1,12 @@
 // Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 #include "texture.h"
+
+#ifdef _WIN32
 #include <direct.h>
+#elif __linux__
+#include <sys/stat.h>
+#define _mkdir(path) mkdir(path, 0755)
+#endif
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
