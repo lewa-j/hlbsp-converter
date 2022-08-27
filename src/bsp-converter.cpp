@@ -19,6 +19,10 @@
 #define strcasestr StrStrIA
 #endif
 
+int handle_wad(const char *path, std::string fileName, const Map::LoadConfig &config, bool scan);
+int handle_vpk(const char *path, std::string fileName, const Map::LoadConfig &config, bool scan);
+int handle_vtf(const char *path, std::string fileName, const Map::LoadConfig &config, bool scan);
+
 int main(int argc, const char *argv[])
 {
 	printf(HLBSP_CONVERTER_NAME "\n");
@@ -136,109 +140,15 @@ int main(int argc, const char *argv[])
 	std::string mapPath;
 	if (strcasestr(argv[1], ".wad") != nullptr)
 	{
-		WadFile wad;
-		if (!wad.load(argv[1]))
-			return -1;
-
-		std::vector<uint8_t> data;
-		Texture tex;
-		for (int i = 0; i < wad.lumps.size(); i++)
-		{
-			if (wad.lumps[i].type != WadFile::TYP_MIPTEX && wad.lumps[i].type != WadFile::TYP_GFXPIC)
-			{
-				printf("lump %d (%s) unknown type %d\n", i, wad.lumps[i].name, wad.lumps[i].type);
-				continue;
-			}
-			wad.getLump(i, data);
-			if (wad.lumps[i].type == WadFile::TYP_GFXPIC)
-				tex.name = wad.lumps[i].name;
-			if (LoadMipTexture(&data[0], tex, wad.lumps[i].type))
-				if (!scan)
-					tex.save((fileName + "_wad/" + tex.name + ".png").c_str(), config.verbose);
-		}
-
-		return 0;
+		return handle_wad(argv[1], fileName, config, scan);
 	}
 	else if (strcasestr(argv[1], ".vpk") != nullptr)
 	{
-		VpkFile vpk;
-		if (!vpk.load(argv[1]))
-			return -1;
-
-		if (config.allTextures)
-		{
-			std::vector<int> formatsNums((int)eVtfFormat::COUNT, 0);
-			int total = 0;
-
-			std::vector<uint8_t> data;
-			Texture tex;
-			for (auto it = vpk.entries.begin(); it != vpk.entries.end(); it++)
-			{
-				if (it->first.find(".vtf") == std::string::npos)
-					continue;
-				if (!vpk.getFile(it->first.c_str(), data))
-					continue;
-
-				tex.name = it->first;
-				if (LoadVtfTexture(&data[0], data.size(), tex, scan))
-				{
-					total++;
-					if (scan)
-					{
-						formatsNums[tex.format]++;
-						if (!(total % 100))
-							printf("%d...", total);
-					}
-					auto l = tex.name.find_last_of('.');
-					if (l != std::string::npos)
-						tex.name = tex.name.substr(0, l);
-					if (!scan)
-						tex.save((fileName + "_vpk/" + tex.name + ".png").c_str(), config.verbose);
-
-				}
-				else
-				{
-					printf("vpk: %s load failed\n", it->first.c_str());
-				}
-			}
-
-			if (scan)
-			{
-				printf("%d\n", total);
-				for (int i = 0; i < formatsNums.size(); i++)
-				{
-					if (!formatsNums[i])
-						continue;
-					printf("%s \t\t %d\n", vtfFormatToStr((eVtfFormat)i), formatsNums[i]);
-				}
-			}
-		}
-
-		return 0;
+		return handle_vpk(argv[1], fileName, config, scan);
 	}
 	else if (strcasestr(argv[1], ".vtf") != nullptr)
 	{
-		FILE *f = fopen(argv[1], "rb");
-		if (!f)
-		{
-			fprintf(stderr, "Error: can't open %s: %s\n", argv[1], strerror(errno));
-			return -1;
-		}
-
-		fseek(f, 0, SEEK_END);
-		std::vector<uint8_t> data(ftell(f));
-		fseek(f, 0, SEEK_SET);
-		fread(&data[0], data.size(), 1, f);
-
-		Texture tex;
-		if (!LoadVtfTexture(data.data(), data.size(), tex, scan))
-		{
-			fprintf(stderr, "Error: LoadVtfTexture %s failed\n", argv[1]);
-			return -1;
-		}
-		tex.save((fileName + ".png").c_str(), config.verbose);
-
-		return 0;
+		return handle_vtf(argv[1], fileName, config, scan);
 	}
 	else if (strcasestr(argv[1], ".bsp") != nullptr)
 	{
@@ -268,5 +178,114 @@ int main(int argc, const char *argv[])
 	}
 	if (config.verbose)
 		printf("Success");
+	return 0;
+}
+
+int handle_wad(const char *path, std::string fileName, const Map::LoadConfig &config, bool scan)
+{
+	WadFile wad;
+	if (!wad.load(path))
+		return -1;
+
+	std::vector<uint8_t> data;
+	Texture tex;
+	for (int i = 0; i < wad.lumps.size(); i++)
+	{
+		if (wad.lumps[i].type != WadFile::TYP_MIPTEX && wad.lumps[i].type != WadFile::TYP_GFXPIC)
+		{
+			printf("lump %d (%s) unknown type %d\n", i, wad.lumps[i].name, wad.lumps[i].type);
+			continue;
+		}
+		wad.getLump(i, data);
+		if (wad.lumps[i].type == WadFile::TYP_GFXPIC)
+			tex.name = wad.lumps[i].name;
+		if (LoadMipTexture(&data[0], tex, wad.lumps[i].type))
+			if (!scan)
+				tex.save((fileName + "_wad/" + tex.name + ".png").c_str(), config.verbose);
+	}
+
+	return 0;
+}
+
+int handle_vpk(const char *path, std::string fileName, const Map::LoadConfig &config, bool scan)
+{
+	VpkFile vpk;
+	if (!vpk.load(path))
+		return -1;
+
+	if (!config.allTextures)
+		return 0;
+
+	std::vector<int> formatsNums((int)eVtfFormat::COUNT, 0);
+	int total = 0;
+
+	std::vector<uint8_t> data;
+	Texture tex;
+	for (auto it = vpk.entries.begin(); it != vpk.entries.end(); it++)
+	{
+		if (it->first.find(".vtf") == std::string::npos)
+			continue;
+		if (!vpk.getFile(it->first.c_str(), data))
+			continue;
+
+		tex.name = it->first;
+		if (LoadVtfTexture(&data[0], data.size(), tex, scan))
+		{
+			total++;
+			if (scan)
+			{
+				formatsNums[tex.format]++;
+				if (!(total % 100))
+					printf("%d...", total);
+			}
+			auto l = tex.name.find_last_of('.');
+			if (l != std::string::npos)
+				tex.name = tex.name.substr(0, l);
+			if (!scan)
+				tex.save((fileName + "_vpk/" + tex.name + ".png").c_str(), config.verbose);
+
+		}
+		else
+		{
+			printf("vpk: %s load failed\n", it->first.c_str());
+		}
+	}
+
+	if (scan)
+	{
+		printf("%d\n", total);
+		for (int i = 0; i < formatsNums.size(); i++)
+		{
+			if (!formatsNums[i])
+				continue;
+			printf("%s \t\t %d\n", vtfFormatToStr((eVtfFormat)i), formatsNums[i]);
+		}
+	}
+
+	return 0;
+}
+
+int handle_vtf(const char *path, std::string fileName, const Map::LoadConfig &config, bool scan)
+{
+	FILE *f = fopen(path, "rb");
+	if (!f)
+	{
+		fprintf(stderr, "Error: can't open %s: %s\n", path, strerror(errno));
+		return -1;
+	}
+
+	fseek(f, 0, SEEK_END);
+	std::vector<uint8_t> data(ftell(f));
+	fseek(f, 0, SEEK_SET);
+	fread(&data[0], data.size(), 1, f);
+
+	Texture tex;
+	if (!LoadVtfTexture(data.data(), data.size(), tex, scan))
+	{
+		fprintf(stderr, "Error: LoadVtfTexture %s failed\n", path);
+		return -1;
+	}
+	tex.save((fileName + ".png").c_str(), config.verbose);
+
 	return 0;
 }
