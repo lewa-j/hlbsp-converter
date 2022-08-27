@@ -6,6 +6,8 @@
 #ifdef __linux__
 #include <strings.h>
 #define strnicmp strncasecmp
+#elif _MSC_VER
+#define strnicmp _strnicmp
 #endif
 
 WadFile::~WadFile()
@@ -40,7 +42,7 @@ bool WadFile::load(const char *path)
 		fread(&lumps[0], sizeof(lumps[0]), lumps.size(), f);
 	}
 
-	printf("Loaded %s with %ld lumps\n", path, lumps.size());
+	printf("Loaded %s with %zu lumps\n", path, lumps.size());
 
 	return true;
 }

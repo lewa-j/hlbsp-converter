@@ -67,8 +67,11 @@ enum class eVtfFormat : int32_t
 	LINEAR_I8,
 	LINEAR_RGBA16161616,
 	LE_BGRX8888,
-	LE_BGRA8888
+	LE_BGRA8888,
+	COUNT
 };
+
+const char *vtfFormatToStr(eVtfFormat fmt);
 
 enum class eVtfFlags
 {

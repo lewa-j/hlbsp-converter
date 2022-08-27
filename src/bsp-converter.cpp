@@ -6,6 +6,7 @@
 #include "vpk.h"
 #include "texture.h"
 #include "rgbcx.h"
+#include "vtf.h"
 #include <cstring>
 
 #ifdef _WIN32
@@ -166,6 +167,9 @@ int main(int argc, const char *argv[])
 
 		if (config.allTextures)
 		{
+			std::vector<int> formatsNums((int)eVtfFormat::COUNT, 0);
+			int total = 0;
+
 			std::vector<uint8_t> data;
 			Texture tex;
 			for (auto it = vpk.entries.begin(); it != vpk.entries.end(); it++)
@@ -178,15 +182,34 @@ int main(int argc, const char *argv[])
 				tex.name = it->first;
 				if (LoadVtfTexture(&data[0], data.size(), tex, scan))
 				{
+					total++;
+					if (scan)
+					{
+						formatsNums[tex.format]++;
+						if (!(total % 100))
+							printf("%d...", total);
+					}
 					auto l = tex.name.find_last_of('.');
 					if (l != std::string::npos)
 						tex.name = tex.name.substr(0, l);
 					if (!scan)
 						tex.save((fileName + "_vpk/" + tex.name + ".png").c_str(), config.verbose);
+
 				}
 				else
 				{
 					printf("vpk: %s load failed\n", it->first.c_str());
+				}
+			}
+
+			if (scan)
+			{
+				printf("%d\n", total);
+				for (int i = 0; i < formatsNums.size(); i++)
+				{
+					if (!formatsNums[i])
+						continue;
+					printf("%s \t\t %d\n", vtfFormatToStr((eVtfFormat)i), formatsNums[i]);
 				}
 			}
 		}

@@ -15,6 +15,8 @@
 #include <strings.h>
 
 #define strnicmp strncasecmp
+#elif _MSC_VER
+#define strnicmp _strnicmp
 #endif
 
 bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
@@ -184,12 +186,12 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 				if (e >= numedges || e <= -numedges)
 				{
 					fprintf(stderr, "Error: model %d face %d bad edge %d\n", mi, fi, e);
-					return -1;
+					return false;
 				}
 				int vi = edges[abs(e)].v[(e > 0 ? 0 : 1)];
 				if (vi >= bspVertices.size()) {
 					fprintf(stderr, "Error: model %d face %d bad vertex index %d\n", mi, fi, vi);
-					return -1;
+					return false;
 				}
 				const vec3_t &v = bspVertices[vi];
 				vec2_t uv = { static_cast<float>(v.dot_d(ti.texVecS)) + ti.texOffS, static_cast<float>(v.dot(ti.texVecT)) + ti.texOffT };
@@ -260,7 +262,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 					submesh.count = 0;
 				}
 
-				int faceVertOffset = vertices.size();
+				size_t faceVertOffset = vertices.size();
 
 				for (int j = 0; j < f.numedges; j++)
 				{
@@ -526,7 +528,7 @@ void Map::parseEntities(const char *src, size_t size)
 				int s = 0;
 				while(true)
 				{
-					int e = token.find(';', s);
+					size_t e = token.find(';', s);
 					if (e == std::string::npos)
 						e = token.size();
 

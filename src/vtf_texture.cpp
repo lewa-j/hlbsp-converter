@@ -51,7 +51,7 @@ uint16_t float_to_half(const float x) { // IEEE-754 16-bit floating-point format
 
 uint8_t half_to_byte(uint16_t x)
 {
-	int i = half_to_float(x) * 255.0f * 4.0f;
+	int i = static_cast<int>(half_to_float(x) * 255.0f * 4.0f);
 	return (i > 255) ? 255 : ((i < 0) ? 0 : i);
 }
 
@@ -97,11 +97,11 @@ bool LoadVtfTexture(const uint8_t *data, size_t size, Texture &tex, bool scan)
 	int offset = baseHdr.headerLength + ((hdr.lowResImageWidth + 3) / 4) * ((hdr.lowResImageHeight + 3) / 4) * 8;
 	int faceSize = 0;
 	Texture::Format fmt = Texture::RGBA8;
-	if (hdr.imageFormat == eVtfFormat::BGR888 || hdr.imageFormat == eVtfFormat::RGB888){
+	if (hdr.imageFormat == eVtfFormat::BGR888 || hdr.imageFormat == eVtfFormat::RGB888 || hdr.imageFormat == eVtfFormat::RGB888_BLUESCREEN){
 		faceSize = hdr.width * hdr.height * 3;
 		fmt = Texture::RGB8;
 	}
-	else if (hdr.imageFormat == eVtfFormat::BGRA8888 || hdr.imageFormat == eVtfFormat::BGRX8888 || hdr.imageFormat == eVtfFormat::RGBA8888) {
+	else if (hdr.imageFormat == eVtfFormat::BGRA8888 || hdr.imageFormat == eVtfFormat::BGRX8888 || hdr.imageFormat == eVtfFormat::RGBA8888 || hdr.imageFormat == eVtfFormat::ABGR8888) {
 		faceSize = hdr.width * hdr.height * 4;
 		fmt = Texture::RGBA8;
 	}
@@ -161,12 +161,15 @@ bool LoadVtfTexture(const uint8_t *data, size_t size, Texture &tex, bool scan)
 	}
 
 	if (scan)
+	{
+		tex.format = (Texture::Format)hdr.imageFormat;
 		return true;
+	}
 
 	tex.create(hdr.width, hdr.height, fmt);
-	if (hdr.imageFormat == eVtfFormat::BGR888) {
+	if (hdr.imageFormat == eVtfFormat::BGR888 || hdr.imageFormat == eVtfFormat::RGB888 || hdr.imageFormat == eVtfFormat::RGB888_BLUESCREEN) {
 		memcpy(&tex.data[0], data + offset, faceSize);
-		if (hdr.imageFormat != eVtfFormat::RGB888)
+		if (hdr.imageFormat == eVtfFormat::BGR888)
 		{
 			uint8_t *td = &tex.data[0];
 			for (int i = 0; i < hdr.width * hdr.height; i++)
@@ -178,10 +181,23 @@ bool LoadVtfTexture(const uint8_t *data, size_t size, Texture &tex, bool scan)
 			}
 		}
 	}
-	else if (hdr.imageFormat == eVtfFormat::BGRA8888 || hdr.imageFormat == eVtfFormat::BGRX8888)
+	else if (hdr.imageFormat == eVtfFormat::RGBA8888 || hdr.imageFormat == eVtfFormat::BGRA8888 || hdr.imageFormat == eVtfFormat::BGRX8888)
 	{
 		memcpy(&tex.data[0], data + offset, faceSize);
-		if (hdr.imageFormat != eVtfFormat::RGBA8888)
+		if (hdr.imageFormat == eVtfFormat::ABGR8888)
+		{
+			uint8_t *td = &tex.data[0];
+			for (int i = 0; i < hdr.width * hdr.height; i++)
+			{
+				uint8_t t = td[0];
+				td[0] = td[1];
+				td[1] = td[2];
+				td[2] = td[3];
+				td[3] = t;
+				td += 4;
+			}
+		}
+		else if (hdr.imageFormat != eVtfFormat::RGBA8888)
 		{
 			uint8_t *td = &tex.data[0];
 			for (int i = 0; i < hdr.width * hdr.height; i++)
@@ -249,4 +265,77 @@ bool LoadVtfTexture(const uint8_t *data, size_t size, Texture &tex, bool scan)
 	}
 
 	return true;
+}
+
+static const char *vtfFmtStr[]
+{
+	"RGBA8888",
+	"ABGR8888",
+	"RGB888",
+	"BGR888",
+	"RGB565",
+	"I8",
+	"IA88",
+	"P8",
+	"A8",
+	"RGB888_BLUESCREEN",
+	"BGR888_BLUESCREEN",
+	"ARGB8888",
+	"BGRA8888",
+	"DXT1",
+	"DXT3",
+	"DXT5",
+	"BGRX8888",
+	"BGR565",
+	"BGRX5551",
+	"BGRA4444",
+	"DXT1_ONEBITALPHA",
+	"BGRA5551",
+	"UV88",
+	"UVWQ8888",
+	"RGBA16161616F",
+	"RGBA16161616",
+	"UVLX8888",
+	"R32F",
+	"RGB323232F",
+	"RGBA32323232F",
+	"RG1616F",
+	"RG3232F",
+	"RGBX8888",
+	"DUMMY",
+	"ATI2N",
+	"ATI1N",
+	"RGBA1010102",
+	"BGRA1010102",
+	"R16F",
+	"D16",
+	"D15S1",
+	"D32",
+	"D24S8",
+	"LINEAR_D24S8",
+	"D24X8",
+	"D24X4S4",
+	"D24FS8",
+	"D16_SHADOW",
+	"D24X8_SHADOW",
+	"LINEAR_BGRX8888",
+	"LINEAR_RGBA8888",
+	"LINEAR_ABGR8888",
+	"LINEAR_ARGB8888",
+	"LINEAR_BGRA8888",
+	"LINEAR_RGB888",
+	"LINEAR_BGR888",
+	"LINEAR_BGRX5551",
+	"LINEAR_I8",
+	"LINEAR_RGBA16161616",
+	"LE_BGRX8888",
+	"LE_BGRA8888"
+};
+
+const char *vtfFormatToStr(eVtfFormat fmt)
+{
+	if (fmt < eVtfFormat::RGBA8888 || fmt >= eVtfFormat::COUNT)
+		return "UNKNOWN";
+
+	return vtfFmtStr[(int)fmt];
 }

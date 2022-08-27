@@ -31,4 +31,8 @@ add_executable (bsp-converter
 	"src/vpk.cpp"
 	)
 
+if(MSVC)
+  target_compile_definitions(bsp-converter PUBLIC _CRT_SECURE_NO_WARNINGS)
+endif()
+
 install(TARGETS bsp-converter DESTINATION bin)
