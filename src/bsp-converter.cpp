@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 #include "bsp-converter.h"
+#include "config.h"
 #include "map.h"
 #include "gltf_export.h"
 #include "wad.h"
@@ -19,9 +20,9 @@
 #define strcasestr StrStrIA
 #endif
 
-int handle_wad(const char *path, std::string fileName, const Map::LoadConfig &config, bool scan);
-int handle_vpk(const char *path, std::string fileName, const Map::LoadConfig &config, bool scan);
-int handle_vtf(const char *path, std::string fileName, const Map::LoadConfig &config, bool scan);
+int handle_wad(const char *path, std::string fileName, const LoadConfig &config);
+int handle_vpk(const char *path, std::string fileName, const LoadConfig &config);
+int handle_vtf(const char *path, std::string fileName, const LoadConfig &config);
 
 int main(int argc, const char *argv[])
 {
@@ -37,7 +38,7 @@ int main(int argc, const char *argv[])
 	std::string fileName = argv[1];
 	std::string rootPath;
 	{
-		int p = fileName.find_last_of("/\\");
+		size_t p = fileName.find_last_of("/\\");
 		if (p != std::string::npos) {
 			rootPath = fileName.substr(0, p + 1);
 			fileName = fileName.substr(p + 1);
@@ -47,8 +48,8 @@ int main(int argc, const char *argv[])
 			fileName = fileName.substr(0, l);
 	}
 
-	Map::LoadConfig config;
-	bool scan = false;
+	LoadConfig config;
+	config.scan = false;
 
 	for (int i = 2; i < argc; i++)
 	{
@@ -111,7 +112,7 @@ int main(int argc, const char *argv[])
 		}
 		else if (!strcmp(argv[i], "-scan"))
 		{
-			scan = true;
+			config.scan = true;
 		}
 		else
 		{
@@ -140,15 +141,15 @@ int main(int argc, const char *argv[])
 	std::string mapPath;
 	if (strcasestr(argv[1], ".wad") != nullptr)
 	{
-		return handle_wad(argv[1], fileName, config, scan);
+		return handle_wad(argv[1], fileName, config);
 	}
 	else if (strcasestr(argv[1], ".vpk") != nullptr)
 	{
-		return handle_vpk(argv[1], fileName, config, scan);
+		return handle_vpk(argv[1], fileName, config);
 	}
 	else if (strcasestr(argv[1], ".vtf") != nullptr)
 	{
-		return handle_vtf(argv[1], fileName, config, scan);
+		return handle_vtf(argv[1], fileName, config);
 	}
 	else if (strcasestr(argv[1], ".bsp") != nullptr)
 	{
@@ -181,7 +182,7 @@ int main(int argc, const char *argv[])
 	return 0;
 }
 
-int handle_wad(const char *path, std::string fileName, const Map::LoadConfig &config, bool scan)
+int handle_wad(const char *path, std::string fileName, const LoadConfig &config)
 {
 	WadFile wad;
 	if (!wad.load(path))
@@ -200,14 +201,14 @@ int handle_wad(const char *path, std::string fileName, const Map::LoadConfig &co
 		if (wad.lumps[i].type == WadFile::TYP_GFXPIC)
 			tex.name = wad.lumps[i].name;
 		if (LoadMipTexture(&data[0], tex, wad.lumps[i].type))
-			if (!scan)
+			if (!config.scan)
 				tex.save((fileName + "_wad/" + tex.name + ".png").c_str(), config.verbose);
 	}
 
 	return 0;
 }
 
-int handle_vpk(const char *path, std::string fileName, const Map::LoadConfig &config, bool scan)
+int handle_vpk(const char *path, std::string fileName, const LoadConfig &config)
 {
 	VpkFile vpk;
 	if (!vpk.load(path))
@@ -229,10 +230,10 @@ int handle_vpk(const char *path, std::string fileName, const Map::LoadConfig &co
 			continue;
 
 		tex.name = it->first;
-		if (LoadVtfTexture(&data[0], data.size(), tex, scan))
+		if (LoadVtfTexture(&data[0], data.size(), tex, config.scan))
 		{
 			total++;
-			if (scan)
+			if (config.scan)
 			{
 				formatsNums[tex.format]++;
 				if (!(total % 100))
@@ -241,7 +242,7 @@ int handle_vpk(const char *path, std::string fileName, const Map::LoadConfig &co
 			auto l = tex.name.find_last_of('.');
 			if (l != std::string::npos)
 				tex.name = tex.name.substr(0, l);
-			if (!scan)
+			if (!config.scan)
 				tex.save((fileName + "_vpk/" + tex.name + ".png").c_str(), config.verbose);
 
 		}
@@ -251,7 +252,7 @@ int handle_vpk(const char *path, std::string fileName, const Map::LoadConfig &co
 		}
 	}
 
-	if (scan)
+	if (config.scan)
 	{
 		printf("%d\n", total);
 		for (int i = 0; i < formatsNums.size(); i++)
@@ -265,7 +266,7 @@ int handle_vpk(const char *path, std::string fileName, const Map::LoadConfig &co
 	return 0;
 }
 
-int handle_vtf(const char *path, std::string fileName, const Map::LoadConfig &config, bool scan)
+int handle_vtf(const char *path, std::string fileName, const LoadConfig &config)
 {
 	FILE *f = fopen(path, "rb");
 	if (!f)
@@ -280,7 +281,7 @@ int handle_vtf(const char *path, std::string fileName, const Map::LoadConfig &co
 	fread(&data[0], data.size(), 1, f);
 
 	Texture tex;
-	if (!LoadVtfTexture(data.data(), data.size(), tex, scan))
+	if (!LoadVtfTexture(data.data(), data.size(), tex, config.scan))
 	{
 		fprintf(stderr, "Error: LoadVtfTexture %s failed\n", path);
 		return -1;

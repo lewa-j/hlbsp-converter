@@ -73,9 +73,9 @@ void Lightmap::write(const RectI &rect, uint8_t *data, uint8_t *dataVecs)
 			for (int j = 0; j < rect.w; j++)
 			{
 				float e = powf(2.0f, ((int8_t *)data)[3]);
-				float r = pow(data[0] * e / 255.0f, 1.0 / 2.2) * 0.5f;
-				float g = pow(data[1] * e / 255.0f, 1.0 / 2.2) * 0.5f;
-				float b = pow(data[2] * e / 255.0f, 1.0 / 2.2) * 0.5f;
+				float r = pow(data[0] * e / 255.0f, 1.0f / 2.2f) * 0.5f;
+				float g = pow(data[1] * e / 255.0f, 1.0f / 2.2f) * 0.5f;
+				float b = pow(data[2] * e / 255.0f, 1.0f / 2.2f) * 0.5f;
 				float mc = fmax(r, fmax(g, b));
 				if (mc > 1) {
 					r /= mc;

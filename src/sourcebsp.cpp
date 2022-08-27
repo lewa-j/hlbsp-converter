@@ -24,6 +24,7 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 	std::vector<char> entitiesText;
 	std::vector<bspTexData_t> texdatas;
 	std::vector<vec3_t> bspVertices;
+	std::vector<bspNode_t> bspNodes;
 	std::vector<bspTexInfo_t> texinfos;
 	std::vector<bspFace_t> faces;
 	std::vector<uint8_t> lightmapPixels;
@@ -37,19 +38,24 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 	std::vector<char> texDataStings;
 	std::vector<int> texDataStingTable;
 
+	std::vector<bspArea_t> bspAreas;
+	std::vector<bspAreaPortal_t> bspAreaPortals;
+	std::vector<vec3_t> bspAreaPortalVerts;
+
 #define READ_LUMP(to, id) \
-	to.resize(header.lumps[id].filelen / sizeof(to[0])); \
-	if(header.lumps[id].filelen) \
+	to.resize(header.lumps[id].size / sizeof(to[0])); \
+	if(header.lumps[id].size) \
 	{ \
-		fseek(f, header.lumps[id].fileofs, SEEK_SET); \
-		fread(&to[0], header.lumps[id].filelen, 1, f); \
+		fseek(f, header.lumps[id].offset, SEEK_SET); \
+		fread(&to[0], header.lumps[id].size, 1, f); \
 	}
 
 	READ_LUMP(entitiesText, LUMP_ENTITIES);
 	READ_LUMP(texdatas, LUMP_TEXDATA);
 	READ_LUMP(bspVertices, LUMP_VERTEXES);
+	READ_LUMP(bspNodes, LUMP_NODES);
 	READ_LUMP(texinfos, LUMP_TEXINFO);
-	if (header.lumps[LUMP_LIGHTING].filelen || !header.lumps[LUMP_LIGHTING_HDR].filelen)
+	if (header.lumps[LUMP_LIGHTING].size || !header.lumps[LUMP_LIGHTING_HDR].size)
 	{
 		READ_LUMP(faces, LUMP_FACES);
 		READ_LUMP(lightmapPixels, LUMP_LIGHTING);
@@ -62,10 +68,13 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 	READ_LUMP(edges, LUMP_EDGES);
 	READ_LUMP(surfedges, LUMP_SURFEDGES);
 	READ_LUMP(bspModels, LUMP_MODELS);
+	READ_LUMP(bspAreas, LUMP_AREAS);
+	READ_LUMP(bspAreaPortals, LUMP_AREAPORTALS);
 	READ_LUMP(dispInfos, LUMP_DISPINFO);
 	READ_LUMP(normals, LUMP_VERTNORMALS);
 	READ_LUMP(normalInds, LUMP_VERTNORMALINDICES);
 	READ_LUMP(bspDispVerts, LUMP_DISP_VERTS);
+	READ_LUMP(bspAreaPortalVerts, LUMP_CLIPPORTALVERTS);
 	READ_LUMP(texDataStings, LUMP_TEXDATA_STRING_DATA);
 	READ_LUMP(texDataStingTable, LUMP_TEXDATA_STRING_TABLE);
 #undef READ_LUMP
@@ -94,7 +103,7 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 	{
 		const bspModel_t &modIn = bspModels[mi];
 
-		for (int fi = modIn.firstFace; fi < modIn.firstFace + modIn.faceCount; fi++)
+		for (uint32_t fi = modIn.firstFace; fi < modIn.firstFace + modIn.faceCount; fi++)
 		{
 			const bspFace_t &f = faces[fi];
 			const bspTexInfo_t &ti = texinfos[f.texInfo];
@@ -127,7 +136,7 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 
 		std::map<int, std::vector<int> > materialFaces;
 
-		for (int fi = modIn.firstFace; fi < modIn.firstFace + modIn.faceCount; fi++)
+		for (uint32_t fi = modIn.firstFace; fi < modIn.firstFace + modIn.faceCount; fi++)
 		{
 			const bspFace_t &f = faces[fi];
 			const bspTexInfo_t &ti = texinfos[f.texInfo];
@@ -138,7 +147,7 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 
 		models[mi].meshes.push_back({});
 		mesh_t &mesh = models[mi].meshes[0];
-		mesh.vertOffset = vertices.size();
+		mesh.vertOffset = (int)vertices.size();
 		mesh.offset = indOffset;
 		int curV = 0;
 		for (auto &mat : materialFaces)
@@ -204,7 +213,7 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 
 		models[mi].dispMeshes.push_back({});
 		mesh_t &dmesh = models[mi].dispMeshes[0];
-		dmesh.vertOffset = dispVertices.size();
+		dmesh.vertOffset = (int)dispVertices.size();
 		dmesh.offset = indOffset;
 		curV = 0;
 		for (auto &mat : materialFaces)

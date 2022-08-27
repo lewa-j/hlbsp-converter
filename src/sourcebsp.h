@@ -96,8 +96,8 @@ enum SurfaceFlags
 
 struct bspLump_t
 {
-	uint32_t fileofs;
-	uint32_t filelen;
+	uint32_t offset;
+	uint32_t size;
 	uint32_t version;
 	uint32_t uncompressedSize;
 };
@@ -116,8 +116,8 @@ struct bspTexData_t
 	uint32_t nameStringTableID;
 	uint32_t width;
 	uint32_t height;
-	uint32_t view_width;
-	uint32_t view_height;
+	uint32_t viewWidth;
+	uint32_t viewHeight;
 };
 
 struct bspTexInfo_t
@@ -165,6 +165,32 @@ struct bspModel_t
 	int32_t headNode;
 	uint32_t firstFace;
 	uint32_t faceCount;
+};
+
+struct bspNode_t
+{
+	int32_t plane;
+	int32_t children[2];
+	int16_t mins[3];
+	int16_t maxs[3];
+	uint16_t faceOffset;
+	uint16_t facesCount;
+	int16_t area;
+};
+
+struct bspArea_t
+{
+	uint32_t portalsCount;
+	uint32_t portalOffset;
+};
+
+struct bspAreaPortal_t
+{
+	uint16_t portalKey;
+	uint16_t otherArea;
+	uint16_t vertOffset;
+	uint16_t vertsCount;
+	int32_t plane;
 };
 
 struct bspDispVert_t

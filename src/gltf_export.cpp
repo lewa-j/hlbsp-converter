@@ -35,9 +35,9 @@ bool exportMap(const std::string &name, Map &map, bool verbose)
 	int meshId = 0;
 	int nodeId = 1;
 	const int vertBufferOffset = 0;
-	const int dispVertBufferOffset = map.vertices.size() * sizeof(map.vertices[0]);
-	const int indsBufferOffset = dispVertBufferOffset + map.dispVertices.size() * sizeof(map.dispVertices[0]);
-	const int indSize = map.indices16.size() ? sizeof(uint16_t) : sizeof(uint32_t);
+	const size_t dispVertBufferOffset = map.vertices.size() * sizeof(map.vertices[0]);
+	const size_t indsBufferOffset = dispVertBufferOffset + map.dispVertices.size() * sizeof(map.dispVertices[0]);
+	const size_t indSize = map.indices16.size() ? sizeof(uint16_t) : sizeof(uint32_t);
 	const int indType = map.indices16.size() ? UNSIGNED_SHORT : UNSIGNED_INT;
 
 	for (int i = 0; i < map.models.size(); i++)
@@ -57,7 +57,7 @@ bool exportMap(const std::string &name, Map &map, bool verbose)
 				nodes[modelNodeId]["translation"] = { p.x, p.y, p.z };
 		}
 
-		auto writeMesh = [&](json &mesh, const Map::mesh_t &part, int vertsOffset, int vertSize)
+		auto writeMesh = [&](json &mesh, const Map::mesh_t &part, size_t vertsOffset, size_t vertSize)
 		{
 			bufferViews[bufferViewId + 0] = { {"buffer", 0}, {"byteOffset", indsBufferOffset + part.offset * indSize}, {"byteLength", part.count * indSize}, {"target", ELEMENT_ARRAY_BUFFER} };
 			bufferViews[bufferViewId + 1] = { {"buffer", 0}, {"byteOffset", vertsOffset + part.vertOffset * vertSize}, {"byteLength", part.vertCount * vertSize},{"byteStride", vertSize}, {"target", ARRAY_BUFFER} };
@@ -154,8 +154,8 @@ bool exportMap(const std::string &name, Map &map, bool verbose)
 	auto &textures = j["textures"];
 	auto &images = j["images"];
 	//TODO: write only used textures
-	int lmapTexIndex = map.textures.size();
-	for (int i = 0; i < map.textures.size(); i++)
+	int lmapTexIndex = (int)map.textures.size();
+	for (size_t i = 0; i < map.textures.size(); i++)
 	{
 		std::string texturePath = std::string("textures/") + map.textures[i].name + ".png";
 		if (map.textures[i].data.size())
@@ -188,8 +188,8 @@ bool exportMap(const std::string &name, Map &map, bool verbose)
 	images[lmapTexIndex] = { {"uri", name + "_lightmap0.png"} };
 	textures[lmapTexIndex] = { {"source", lmapTexIndex} };
 
-	int vertsLen = map.vertices.size() * sizeof(map.vertices[0]) + map.dispVertices.size() * sizeof(map.dispVertices[0]);
-	int indsLen = 0;
+	size_t vertsLen = map.vertices.size() * sizeof(map.vertices[0]) + map.dispVertices.size() * sizeof(map.dispVertices[0]);
+	size_t indsLen = 0;
 
 	std::string bufferName = name + ".bin";
 

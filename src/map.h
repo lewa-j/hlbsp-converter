@@ -4,6 +4,7 @@
 #include <vector>
 #include "texture.h"
 #include "vector_math.h"
+#include "config.h"
 
 enum bspIdents
 {
@@ -18,18 +19,6 @@ class WadFile;
 class Map
 {
 public:
-	struct LoadConfig
-	{
-		std::string gamePath;
-		bool skipSky = false;
-		int lightmapSize = 2048;
-		int lstyle = -1;
-		bool lstylesMerge = false;
-		bool lstylesAll = false;
-		bool uint16Inds = false;
-		bool allTextures = false;
-		bool verbose = false;
-	};
 	bool load(const char *path, const char *name, LoadConfig *config = nullptr);
 
 	struct vert_t

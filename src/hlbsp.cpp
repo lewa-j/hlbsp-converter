@@ -152,7 +152,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 
 	Lightmap lightmap(config->lightmapSize, lightmapVecs.size() != 0);
 
-	int numedges = edges.size();
+	int numedges = (int)edges.size();
 	std::vector<std::map<int, std::vector<int> > > modelMaterialFaces(bspModels.size());
 	for (int mi = 0; mi < bspModels.size(); mi++)
 	{
@@ -195,10 +195,10 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 				}
 				const vec3_t &v = bspVertices[vi];
 				vec2_t uv = { static_cast<float>(v.dot_d(ti.texVecS)) + ti.texOffS, static_cast<float>(v.dot(ti.texVecT)) + ti.texOffT };
-				min_uv.x = fmin(min_uv.x, uv.x);
-				max_uv.x = fmax(max_uv.x, uv.x);
-				min_uv.y = fmin(min_uv.y, uv.y);
-				max_uv.y = fmax(max_uv.y, uv.y);
+				min_uv.x = fminf(min_uv.x, uv.x);
+				max_uv.x = fmaxf(max_uv.x, uv.x);
+				min_uv.y = fminf(min_uv.y, uv.y);
+				max_uv.y = fmaxf(max_uv.y, uv.y);
 			}
 
 			lmMins[fi] = { int(floor(min_uv.x / sampleSize)), int(floor(min_uv.y / sampleSize)) };
@@ -224,7 +224,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 
 		mesh->count = 0;
 		mesh->offset = indicesOffset;
-		mesh->vertOffset = vertices.size();
+		mesh->vertOffset = (int)vertices.size();
 		int indVertOffset = 0;
 		for (auto &mat : modelMaterialFaces[mi])
 		{
@@ -241,7 +241,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 
 				if (config->uint16Inds && (indVertOffset + f.numedges >= UINT16_MAX - 1))
 				{
-					mesh->vertCount = vertices.size() - mesh->vertOffset;
+					mesh->vertCount = (int)vertices.size() - mesh->vertOffset;
 					if (submesh.count)
 					{
 						indicesOffset += submesh.count;
@@ -254,7 +254,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 
 					mesh->count = 0;
 					mesh->offset = indicesOffset;
-					mesh->vertOffset = vertices.size();
+					mesh->vertOffset = (int)vertices.size();
 					indVertOffset = 0;
 
 					submesh.material = mat.first;
@@ -341,7 +341,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 			mesh->count += submesh.count;
 			indicesOffset += submesh.count;
 		}
-		mesh->vertCount = vertices.size() - mesh->vertOffset;
+		mesh->vertCount = (int)vertices.size() - mesh->vertOffset;
 	}
 
 	if (lightmapPixels.size())
@@ -525,7 +525,7 @@ void Map::parseEntities(const char *src, size_t size)
 
 			if (isWorldSpawn && keyname == "wad")
 			{
-				int s = 0;
+				size_t s = 0;
 				while(true)
 				{
 					size_t e = token.find(';', s);

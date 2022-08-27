@@ -29,7 +29,7 @@ add_executable (bsp-converter
 	"src/rgbcx.cpp"
 	"src/vpk.h"
 	"src/vpk.cpp"
-	)
+	 "src/config.h")
 
 if(MSVC)
   target_compile_definitions(bsp-converter PUBLIC _CRT_SECURE_NO_WARNINGS)
