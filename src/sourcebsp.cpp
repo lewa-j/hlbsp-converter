@@ -81,6 +81,23 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 
 	fclose(f);
 
+	if (config->scan)
+	{
+		printf("verts: %zd\n", bspVertices.size());
+		printf("texdatas: %zd\n", texdatas.size());
+		printf("texinfos: %zd\n", texinfos.size());
+		printf("nodes: %zd\n", bspNodes.size());
+		printf("faces: %zd\n", faces.size());
+		printf("models: %zd\n", bspModels.size());
+
+		printf("areas: %zd\n", bspAreas.size());
+		printf("area portals: %zd\n", bspAreaPortals.size());
+		printf("portal verts: %zd\n", bspAreaPortalVerts.size());
+
+		printf("disp infos: %zd\n", dispInfos.size());
+		printf("disp verts: %zd\n", bspDispVerts.size());
+	}
+
 	models.resize(bspModels.size());
 	parseEntities(&entitiesText[0], entitiesText.size());
 
@@ -103,6 +120,11 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 	{
 		const bspModel_t &modIn = bspModels[mi];
 
+		if (config->scan)
+		{
+			printf("model %d: faces (%d-%d), node %d\n", mi, modIn.firstFace, modIn.faceCount, modIn.headNode);
+		}
+
 		for (uint32_t fi = modIn.firstFace; fi < modIn.firstFace + modIn.faceCount; fi++)
 		{
 			const bspFace_t &f = faces[fi];
@@ -121,6 +143,9 @@ bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 			}
 		}
 	}
+
+	if (config->scan)
+		return false;
 
 	if (lightmapPixels.size())
 	{

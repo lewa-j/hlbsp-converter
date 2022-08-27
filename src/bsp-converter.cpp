@@ -49,7 +49,6 @@ int main(int argc, const char *argv[])
 	}
 
 	LoadConfig config;
-	config.scan = false;
 
 	for (int i = 2; i < argc; i++)
 	{
