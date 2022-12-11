@@ -114,9 +114,24 @@ void Lightmap::write(const RectI &rect, uint8_t *data, uint8_t *dataVecs)
 	}
 }
 
+int compareLMRects(const void *rect1, const void *rect2)
+{
+	const Lightmap::RectI *r1 = static_cast<const Lightmap::RectI *>(rect1);
+	const Lightmap::RectI *r2 = static_cast<const Lightmap::RectI *>(rect2);
+
+	if (r2->h == r1->h)
+		return r2->w - r1->w;
+	return r2->h - r1->h;
+}
+
 bool Lightmap::pack(std::vector<RectI> &rects, int max_size)
 {
 	block_width = block_height = 32;
+
+	for (int i = 0; i < rects.size(); i++)
+		rects[i].id = i;
+
+	std::qsort(&rects[0], rects.size(), sizeof(rects[0]), compareLMRects);
 
 	while (true)
 	{
@@ -135,7 +150,7 @@ bool Lightmap::pack(std::vector<RectI> &rects, int max_size)
 		if (i == rects.size())
 			break;
 
-		if (block_height > block_width)
+		if (block_height >= block_width)
 			block_width <<= 1;
 		else
 			block_height <<= 1;
@@ -146,6 +161,12 @@ bool Lightmap::pack(std::vector<RectI> &rects, int max_size)
 			return false;
 		}
 	}
+
+	std::vector<RectI> unsorted_rects(rects.size());
+	for (int i = 0; i < rects.size(); i++)
+		unsorted_rects[rects[i].id] = rects[i];
+
+	rects = std::move(unsorted_rects);
 
 	return true;
 }
