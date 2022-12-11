@@ -35,4 +35,6 @@ if(MSVC)
   target_compile_definitions(bsp-converter PUBLIC _CRT_SECURE_NO_WARNINGS)
 endif()
 
+set_property(TARGET bsp-converter PROPERTY CXX_STANDARD 20)
+
 install(TARGETS bsp-converter DESTINATION bin)

@@ -111,15 +111,15 @@ bool exportMap(const std::string &name, Map &map, bool verbose)
 			meshes[meshId] = { {"primitives",json::array()} };
 			if (!singleMesh)
 			{
-				std::string meshName = name + "_mesh" + std::to_string(i) + "_" + std::to_string(mmi);
-				nodes[nodeId] = { {"name", meshName}, {"mesh", meshId} };
+				std::string meshName = name + "_model" + std::to_string(i) + "_mesh" + std::to_string(mmi);
+				nodes[nodeId] = { {"name", part.name.empty() ? meshName : part.name}, {"mesh", meshId} };
 				nodes[modelNodeId]["children"].push_back(nodeId);
 				nodeId++;
 				meshes[meshId]["name"] = meshName;
 			}
 			else
 			{
-				meshes[meshId]["name"] = name + "_mesh" + std::to_string(i);
+				meshes[meshId]["name"] = name + "_model" + std::to_string(i) + "_mesh";
 			}
 
 			writeMesh(meshes[meshId], part, vertBufferOffset, sizeof(map.vertices[0]));
@@ -135,15 +135,15 @@ bool exportMap(const std::string &name, Map &map, bool verbose)
 			meshes[meshId] = { {"primitives",json::array()} };
 			if (!singleMesh)
 			{
-				std::string meshName = name + "_dispMesh" + std::to_string(i) + "_" + std::to_string(dmi);
-				nodes[nodeId] = { {"name", meshName}, {"mesh", meshId} };
+				std::string meshName = name + "_model" + std::to_string(i) + "_dispMesh" + std::to_string(dmi);
+				nodes[nodeId] = { {"name", part.name.empty() ? meshName : part.name}, {"mesh", meshId} };
 				nodes[modelNodeId]["children"].push_back(nodeId);
 				nodeId++;
 				meshes[meshId]["name"] = meshName;
 			}
 			else
 			{
-				meshes[meshId]["name"] = name + "_dispMesh" + std::to_string(i);
+				meshes[meshId]["name"] = name + "_model" + std::to_string(i) + "_dispMesh";
 			}
 
 			writeMesh(meshes[meshId], part, dispVertBufferOffset, sizeof(map.dispVertices[0]));

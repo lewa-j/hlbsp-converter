@@ -175,7 +175,38 @@ struct bspNode_t
 	int16_t maxs[3];
 	uint16_t faceOffset;
 	uint16_t facesCount;
-	int16_t area;
+	int16_t area; //always 0
+};
+
+struct bspLeaf_v0_t
+{
+	uint32_t contents;
+	uint16_t cluster;
+	uint16_t area:9;
+	uint16_t flags:7;
+	int16_t mins[3];
+	int16_t maxs[3];
+	uint16_t leafFaceOffset;
+	uint16_t facesCount;
+	uint16_t leafBrushOffset;
+	uint16_t brushesCount;
+	int16_t waterId;
+	uint8_t ambientLighting[6][4]; //rgbExp32 cube
+};
+
+struct bspLeaf_v1_t
+{
+	int32_t contents;
+	int16_t cluster;
+	int16_t area:9;
+	int16_t flags:7;
+	int16_t mins[3];
+	int16_t maxs[3];
+	uint16_t leafFaceOffset;
+	uint16_t facesCount;
+	uint16_t leafBrushOffset;
+	uint16_t brushesCount;
+	int16_t waterId;
 };
 
 struct bspArea_t

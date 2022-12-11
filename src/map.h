@@ -50,11 +50,13 @@ public:
 		int vertOffset;
 		int vertCount;
 		std::vector<submesh_t> submeshes;
+		std::string name;
 	};
 	struct model_t
 	{
 		std::vector<mesh_t> meshes;
 		std::vector<mesh_t> dispMeshes;
+		std::vector<mesh_t> portalMeshes;
 		vec3_t position = { 0,0,0 };
 	};
 	struct material_t
