@@ -7,6 +7,7 @@
 #include <cfloat>
 #include <functional>
 #include <format>
+#include <cstring>
 
 bool Map::load_vbsp(FILE *f, const char *name, LoadConfig *config)
 {
