@@ -414,7 +414,7 @@ bool Map::load_hlbsp(FILE *f, const char *name, LoadConfig *config)
 	return true;
 }
 
-void Map::hlbsp_loadTextures(FILE *f, int fileofs, int filelen, std::vector<WadFile> wads, bool verbose)
+void Map::hlbsp_loadTextures(FILE *f, int fileofs, int filelen, std::vector<WadFile> &wads, bool verbose)
 {
 	using namespace hlbsp;
 	if (!filelen)
@@ -532,6 +532,9 @@ void Map::parseEntities(const char *src, size_t size)
 					if (e == std::string::npos)
 						e = token.size();
 
+                    if (s >= e)
+                        break;
+
 					if (e - s > 0)
 					{
 						std::string temp = token.substr(s, e - s);
@@ -540,8 +543,6 @@ void Map::parseEntities(const char *src, size_t size)
 							temp = temp.substr(p + 1);
 						wadNames.push_back(temp);
 					}
-					else
-						break;
 					s = e + 1;
 				}
 			}
