@@ -13,10 +13,10 @@
 WadFile::~WadFile()
 {
 	if(f)
-    {
+	{
 		fclose(f);
-        f = 0;
-    }
+		f = 0;
+	}
 }
 
 bool WadFile::load(const char *path)

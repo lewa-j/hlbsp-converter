@@ -532,17 +532,15 @@ void Map::parseEntities(const char *src, size_t size)
 					if (e == std::string::npos)
 						e = token.size();
 
-                    if (s >= e)
-                        break;
+					if (s >= e)
+						break;
 
-					if (e - s > 0)
-					{
-						std::string temp = token.substr(s, e - s);
-						size_t p = temp.find_last_of("/\\");
-						if (p != std::string::npos)
-							temp = temp.substr(p + 1);
-						wadNames.push_back(temp);
-					}
+					std::string temp = token.substr(s, e - s);
+					size_t p = temp.find_last_of("/\\");
+					if (p != std::string::npos)
+						temp = temp.substr(p + 1);
+					wadNames.push_back(temp);
+
 					s = e + 1;
 				}
 			}
