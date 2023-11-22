@@ -1,5 +1,6 @@
 // Copyright (c) 2022 Alexey Ivanchukov (lewa_j)
 #include "parser.h"
+#include <cstdint>
 
 Parser::Parser(const char *src, size_t length)
 {
