@@ -24,7 +24,7 @@ or
 
 To extract textures from wad
 ```sh
-./bsp-converter path/to/file.bsp
+./bsp-converter path/to/file.wad
 ```
 
 To convert vtf texture to png
